@@ -1,85 +1,91 @@
-# Twitch Clip Search
+# Twitchクリップ検索
 
-Search public Twitch clip titles across streamers without entering a channel ID, signing in, or configuring an API key.
+配信者を指定せず、Twitchクリップのタイトルをキーワードで検索するChrome拡張です。チャンネルID・ログイン・APIキーの入力は不要です。
 
-Twitch Clip Search is a Chrome side-panel extension with a Japanese interface. Search while watching Twitch. It discovers broadcasters from public categories, collects their clips, and searches titles on your device.
+Twitchを見ながらサイドパネルで検索できます。公開カテゴリから配信者を見つけ、取得したクリップのタイトルを端末上で検索します。
 
-**Search covers collected clips, not every clip on Twitch.** Twitch may restrict additional retrieval. Previously collected results remain searchable when a request fails.
+**検索対象は取得できたクリップの一部です。Twitch全体の全件検索には対応していません。** 取得が制限された場合も、それまでの結果は検索できます。
 
-## Install
+## インストール
 
-Requires Chrome 116 or later. No server or build step is required.
+Chrome 116以降に対応しています。サーバーの起動やビルドは不要です。
 
-1. Download this repository as a ZIP and extract it, or clone it:
+1. このリポジトリをZIPでダウンロードして展開するか、次のコマンドで取得します。
 
    ```sh
    git clone https://github.com/aururn/twitch-clip-search.git
    ```
 
-2. Open `chrome://extensions` in Chrome.
-3. Enable **Developer mode**.
-4. Click **Load unpacked** and select the repository's `extension` directory, which contains `manifest.json`.
-5. Pin **Twitchクリップ検索** (Twitch Clip Search) from Chrome's extensions menu, then click its toolbar icon to open the side panel alongside Twitch.
+2. Chromeで `chrome://extensions` を開きます。
+3. **デベロッパーモード**を有効にします。
+4. **パッケージ化されていない拡張機能を読み込む**を押し、`manifest.json` がある `extension` フォルダーを選びます。
+5. Chromeの拡張機能メニューから **Twitchクリップ検索** を固定し、ツールバーのアイコンを押すとサイドパネルが開きます。
 
-An extension-only ZIP created with `npm run pack` can also be extracted and loaded by selecting the directory containing `manifest.json`.
+`npm run pack` で作成した拡張機能用ZIPも、展開して `manifest.json` があるフォルダーを選べば読み込めます。
 
-After updating an unpacked installation, click its reload button on `chrome://extensions`, then close and reopen the side panel. Version 1.3 adds Chrome's `sidePanel` permission. Keep the extension in the same directory to retain its local data.
+更新後は `chrome://extensions` で拡張機能の再読み込みボタンを押し、サイドパネルを開き直してください。バージョン1.3では `sidePanel` 権限が追加されています。ローカルデータを引き継ぐため、読み込み元のフォルダーは移動しないでください。
 
-## Features
+## 機能
 
-- Search clip titles across streamers without selecting a broadcaster.
-- Keep Twitch visible while searching in the side panel. Clip links open in background tabs.
-- Automatically discover broadcasters and collect clips beyond category rankings.
-- Combine keywords, exclude terms, and search quoted phrases.
-- Normalize full-width and half-width characters and ignore letter case.
-- Filter by date range, clip language, and collected category.
-- Sort by views, newest first, or oldest first.
-- Save clips locally and export search results as CSV.
-- Stop collection while retaining completed results and progress.
-- Press `/` to focus the search field.
+- 配信者を指定せず、クリップのタイトルを検索
+- Twitchを見ながらサイドパネルで検索。結果はバックグラウンドの別タブに表示
+- 配信者の自動発見によって、カテゴリのランキングだけでは見つからないクリップも取得
+- 複数キーワード・除外キーワード・フレーズ検索
+- 全角・半角、英字の大文字・小文字の違いを吸収
+- 期間・言語・カテゴリによる絞り込み
+- 視聴回数順・新しい順・古い順での並べ替え
+- クリップのローカル保存と検索結果のCSV出力
+- 取得済みの結果と進捗を残したまま停止
+- `/` キーで検索欄に移動
 
-## Usage
+## 使い方
 
-Enter a keyword and click **検索** (Search). Cached matches appear immediately, and each search automatically expands collection for up to two rounds. Defaults are Japanese clips from all time; the language filter is visible and can be changed. Existing installations switch to the all-time default once on this update, retaining their clips and saved items.
+キーワードを入力して **検索** を押します。取得済みの結果をすぐに表示し、最大2ラウンドの追加取得を自動で進めます。初期設定は「全期間・日本語」です。言語は検索欄の下で変更できます。
 
-| Query | Matches |
+既存のインストールでは、この更新で一度だけ期間の初期設定を「全期間」に切り替えます。取得データと保存したクリップは残ります。
+
+| 入力例 | 検索対象 |
 | --- | --- |
-| `爆笑` | Titles containing the keyword |
-| `爆笑 初見` | Titles containing both terms |
-| `爆笑 -ネタバレ` | Titles containing the first term but excluding the second |
-| `"nice shot"` | Titles containing the phrase |
+| `爆笑` | 「爆笑」を含むタイトル |
+| `爆笑 初見` | 両方のキーワードを含むタイトル |
+| `爆笑 -ネタバレ` | 「爆笑」を含み、「ネタバレ」を含まないタイトル |
+| `"nice shot"` | 「nice shot」というフレーズを含むタイトル |
 
-Click **追加取得** (Expand search coverage) to continue through unvisited broadcasters and periods. Some additional retrieval opens temporary, muted Twitch tabs; the extension closes its own tabs when the scan finishes, fails, is stopped, or the panel closes. Keep the side panel open during collection. Closing it retains completed results and checkpoints.
+**追加取得**を押すと、未取得の配信者や期間へ進みます。取得中はサイドパネルを開いたままにしてください。閉じても、それまでの結果と進捗は残ります。
 
-Use the bookmark button to save a clip. Date, language, category, and keyword filters also apply to the saved-clips view. Use **CSV** to export the current search results.
+取得方法によっては、音声をミュートしたTwitchの一時タブが開きます。この拡張が作成したタブだけを、取得の完了・失敗・停止時やパネルを閉じたときに自動で閉じます。
 
-## Coverage and limitations
+ブックマークボタンでクリップを保存できます。保存したクリップにも検索条件が適用されます。**CSV**で現在の検索結果を書き出せます。
 
-Twitch's official Helix API does not provide a global clip-title search. Twitch Clip Search uses publicly accessible Twitch website metadata and rendered directory pages to build a local, partial index. It does not require a broadcaster ID for collection or search.
+## 検索範囲と制限
 
-Each round examines up to 60 categories and up to 40 automatically discovered broadcasters, requesting up to 100 clips per source. The first directory request covers up to 100 categories. Category results and the existing cache identify broadcasters; no broadcaster ID or login needs to be entered. Broadcasters associated with matching titles are prioritised among equally visited sources.
+Twitchの公式Helix APIには、全配信者を対象にしたクリップタイトル検索がありません。この拡張は、Twitchの公開データと通常の一覧画面からクリップを集め、端末内に検索用データを作成します。チャンネルIDや配信者名を入力する必要はありません。
 
-For all-time searches, broadcaster collection progresses through all-time, 30-day, 7-day, and 24-hour rankings in separate rounds. This adds recent clips that fall outside an all-time ranking. Successful periods are checkpointed, failures remain retryable, and duplicate clips are not counted as additions. Unvisited broadcaster rankings are prioritised over restricted category pagination. When these are exhausted, additional collection can discover more categories and try up to six category continuations per round.
+1ラウンドで最大60カテゴリと、自動で見つけた最大40配信者を調べ、それぞれ最大100件のクリップを取得します。最初のカテゴリ一覧取得では最大100カテゴリを取得します。取得データから配信者を見つけ、取得済みの回数が同じ場合は、検索語に一致するタイトルが見つかった配信者を優先します。
 
-Clips are retrieved in descending view-count order within each ranking. **This is still a partial index, not an exhaustive Twitch search.** Undiscovered broadcasters, clips below every retrieved ranking, unvisited categories, and private or deleted clips are not covered. Counts describe matches in the collected index. Removing the initial 30-day filter and adding broadcaster discovery improve coverage without making it complete.
+「全期間」では、配信者ごとに全期間・30日・7日・24時間のランキングを順に調べます。全期間の上位に入らない最近のクリップも、別の期間のランキングから取得できます。取得済みの期間は記録し、失敗したものは再試行できます。同じクリップを追加件数に重複して数えません。
 
-Twitch can restrict unauthenticated pagination and stop loading additional cards on its normal website. Twitch Clip Search reads ordinary public listing pages for continuation; it does not bypass verification screens or extract authentication or client-integrity tokens. Restrictions are reported in the interface while existing results are retained. Deeper retrieval and complete historical coverage are not guaranteed.
+未取得の配信者を優先し、それらを調べ終えた後は、追加のカテゴリや最大6カテゴリの一覧の続きへ進みます。
 
-Collection checkpoints are separate for each date range and language. Checkpoints older than one day are restarted while cached clips are retained. Clip titles and view counts are refreshed only when their metadata is retrieved again. Use the refresh action in **検索のしくみ** (How search works) to restart the current scope.
+**表示件数は、取得したデータの中で一致した件数です。** 未発見の配信者、取得したランキングの範囲外、未取得のカテゴリ、非公開・削除済みのクリップは検索できません。初期の30日制限を外し、配信者ごとの取得を加えることで範囲を広げていますが、全件を網羅するものではありません。
 
-## Privacy and permissions
+Twitch側の制限によって、続きの取得や通常の一覧画面の追加読み込みが止まることがあります。確認画面の回避や認証情報の抽出は行いません。取得できなかった場合は画面に表示し、取得済みの結果は保持します。過去のクリップを漏れなく取得できる保証はありません。
 
-- Requests host access only to `gql.twitch.tv` and `www.twitch.tv`. Chrome's `sidePanel` API displays the interface alongside Twitch; `scripting` reads listing pages created by the extension.
-- Does not read browsing history, account OAuth tokens, cookies, passwords, or client-integrity tokens.
-- Public metadata requests use `credentials: omit`. Temporary Twitch tabs operate as normal pages in your Chrome profile.
-- Does not install a persistent content script or request access to all websites.
-- Stores collected clips, preferences, and saved clips in the extension's IndexedDB. No application backend receives them.
-- The optional Google search link sends the query to Google only when clicked.
-- Removing the extension removes its local data. Export important results as CSV first.
+取得の進捗は期間と言語ごとに保存します。1日以上経過した進捗は最初から調べ直しますが、取得済みのクリップは残ります。タイトルと視聴回数は、そのクリップを再取得したときに更新します。**検索のしくみ**から現在の範囲を最新の状態で取り直すこともできます。
 
-## Development
+## プライバシーと権限
 
-The extension and unit tests have no third-party dependencies. Use Node.js 20.3 or later for the scripts.
+- アクセス先は `gql.twitch.tv` と `www.twitch.tv` です。`sidePanel` はサイドパネルの表示、`scripting` は拡張が作成したTwitch一覧タブの読み取りに使用します。
+- 閲覧履歴、アカウントのOAuthトークン、Cookie、パスワード、クライアント検証用トークンは読み取りません。
+- 公開データの取得リクエストは `credentials: omit` で送ります。一時的なTwitchタブは、使用中のChromeプロファイルの通常のページとして動作します。
+- 常駐するコンテンツスクリプトや、すべてのWebサイトへのアクセス権限は使用しません。
+- 取得データ、設定、保存したクリップは拡張のIndexedDBに保存します。アプリ独自のバックエンドには送信しません。
+- Google検索へのリンクは、クリックした場合にだけ検索語をGoogleへ送ります。
+- 拡張機能を削除するとローカルデータも削除されます。必要な結果は先にCSVで書き出してください。
+
+## 開発・動作確認
+
+拡張機能と単体テストに外部ライブラリは不要です。スクリプトの実行にはNode.js 20.3以降を使用します。
 
 ```sh
 npm test
@@ -87,9 +93,13 @@ npm run test:live
 npm run test:coverage
 ```
 
-`npm test` runs deterministic tests for search, Unicode handling, URL validation, category and broadcaster checkpoints, prioritisation, deduplication, cancellation, partial failures, and public-page retrieval. `test:live` checks category discovery and real title matching. `test:coverage` compares five category rankings with up to 40 discovered broadcasters using the same language and date range, reporting the additional clips and keyword matches. Twitch may reject requests from outside a browser.
+- `npm test`：検索、Unicodeの扱い、URL検証、取得の進捗、配信者の優先順位、重複排除、停止、部分的な失敗、公開ページの読み取りを検証します。
+- `npm run test:live`：実際のTwitchデータでカテゴリ取得とタイトル検索を確認します。
+- `npm run test:coverage`：同じ言語・期間で5カテゴリのランキングと最大40配信者の追加取得を比較し、クリップ数と検索一致数の増加を表示します。
 
-Browser tests require a separate development installation of Playwright:
+Twitch側の制限によって、ブラウザー外からのリクエストが拒否される場合があります。
+
+ブラウザーテストを実行する場合は、開発用にPlaywrightをインストールします。
 
 ```sh
 npm install --no-save --package-lock=false playwright
@@ -98,22 +108,24 @@ node scripts/browser-check.js
 node scripts/browser-check.js --live
 ```
 
-The default browser test uses deterministic fixtures. `--live` uses actual Twitch data and reports additional-retrieval restrictions. These checks launch the actual Manifest V3 extension in an isolated Chromium profile. Generated screenshots and packages are excluded from version control.
+通常のブラウザーテストは固定のテストデータを使います。`--live` を付けると実際のTwitchデータを使い、追加取得の制限も確認します。どちらも専用のChromiumプロファイルにManifest V3拡張を読み込んで実行します。生成したスクリーンショットと配布用ZIPはGitの管理対象外です。
 
-On Windows, create an extension-only ZIP with PowerShell:
+Windowsでは、次のコマンドで拡張機能用ZIPを作成できます。
 
 ```sh
 npm run pack
 ```
 
-The package is written to `dist/twitch-clip-search-1.3.0.zip`.
+出力先は `dist/twitch-clip-search-1.3.0.zip` です。
 
-## Design
+## UI
 
-The interface uses a white canvas, readable system fonts, compact controls, and a restrained purple accent. The side panel uses compact thumbnail rows with titles, broadcaster names, views, and dates. Search remains available while scrolling. Usage details stay in the help dialog. There are no promotional headings, decorative illustrations, suggestion chips, or footer slogans. Opening `app.html` directly still provides the wider gallery layout.
+白い背景と読みやすい文字を使い、検索・絞り込み・取得状況・結果に絞った画面です。サイドパネルには小さなサムネイルとタイトル、配信者名、視聴回数、日付を表示します。スクロール中も検索欄を使えます。
+
+使い方の詳細はヘルプにまとめ、キャッチコピーや装飾用イラストは置いていません。`app.html` を直接開いた場合は、横幅を使った一覧表示になります。
 
 ## Licence
 
-This project's source code is licensed under the [MIT Licence](LICENCE). Twitch clips, thumbnails, trademarks, and other third-party content remain the property of their respective owners and are not granted under this licence.
+ソースコードには [MIT Licence](LICENCE) を適用します。Twitchのクリップ、サムネイル、商標など第三者のコンテンツの権利は、それぞれの権利者に帰属し、MIT Licenceの適用対象には含まれません。
 
-Twitch Clip Search is an independent project and is not affiliated with or endorsed by Twitch, Amazon, Google, Raycast, or Refero.
+このプロジェクトは非公式の個人用ツールです。Twitch、Amazon、Google、Raycast、Referoとの提携や、各社による承認を受けたものではありません。
