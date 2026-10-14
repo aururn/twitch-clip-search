@@ -59,12 +59,9 @@ function updateFilters() {
     const selected = button.dataset.period === state.options.period;
     button.classList.toggle('selected', selected);
     button.setAttribute('aria-pressed', String(selected));
-    button.querySelector('.radio-dot')?.remove();
-    if (selected) button.append(element('span', 'radio-dot'));
   });
   $('language').value = state.options.language;
   $('sort').value = state.options.sort;
-  $('scope-label').textContent = `${$('language').selectedOptions[0].textContent} · ${PERIODS[state.options.period].label}`;
 }
 
 function updateCategoryOptions() {
@@ -79,11 +76,6 @@ function updateCategoryOptions() {
 function updateCoverage() {
   $('cache-total').textContent = state.clips.size.toLocaleString('ja-JP');
   $('saved-count').textContent = state.favorites.size.toLocaleString('ja-JP');
-  if (state.busy) return;
-  const scopeCount = filterClips([...state.clips.values()], { ...state.options, query: '', category: '' }).length;
-  const categoryCount = state.scope?.categories.filter(item => item.pages > 0).length ?? 0;
-  $('coverage-title').textContent = scopeCount ? `${scopeCount.toLocaleString('ja-JP')} 件のタイトルを検索できます` : '配信者横断のタイトル検索';
-  $('coverage-detail').textContent = scopeCount ? `${categoryCount} カテゴリを取得済み · 追加取得で検索対象を増やせます。` : '検索すると公開カテゴリのクリップを取得します。';
 }
 
 function setBusy(busy) {
@@ -91,6 +83,9 @@ function setBusy(busy) {
   $('collect').hidden = busy;
   $('stop').hidden = !busy;
   $('progress-track').hidden = !busy;
+  $('cache-summary').hidden = busy;
+  $('coverage-title').hidden = !busy;
+  $('coverage-detail').hidden = !busy;
   $('progress-bar').style.width = '0%';
   $('language').disabled = busy;
   $('category').disabled = busy;
@@ -135,7 +130,6 @@ function createCard(clip, tokens) {
   for (const part of highlightParts(clip.title, tokens)) title.append(part.hit ? element('mark', '', part.text) : document.createTextNode(part.text));
   const category = element('div', 'clip-category', clip.category);
   category.title = clip.category;
-  thumbnail.append(category);
   content.append(title);
   link.append(thumbnail, content);
   const footer = element('div', 'clip-footer');
@@ -161,10 +155,10 @@ function createCard(clip, tokens) {
     toast(enabled ? 'クリップを保存しました' : '保存を解除しました');
     if (state.view === 'saved') render();
   }));
-  footer.append(element('span', 'avatar', [...(clip.broadcaster || '?')][0].toUpperCase()), name, save);
+  footer.append(name, category, save);
   const metadata = element('div', 'clip-meta');
   const views = element('span', 'clip-views');
-  views.append(icon('eye'), document.createTextNode(`${formatViews(clip.views)} 回視聴`));
+  views.textContent = `${formatViews(clip.views)} 回視聴`;
   const date = new Intl.DateTimeFormat('ja-JP', { month: 'numeric', day: 'numeric', year: 'numeric' }).format(new Date(clip.createdAt));
   metadata.append(views, element('span', '', date));
   article.append(link, footer, metadata);
@@ -178,7 +172,6 @@ function render() {
   $('saved-tab').classList.toggle('active', saved);
   $('explore-tab').setAttribute('aria-pressed', String(!saved));
   $('saved-tab').setAttribute('aria-pressed', String(saved));
-  $('view-label').textContent = saved ? '保存したクリップ' : 'クリップを探す';
   state.results = filterClips([...(saved ? state.favorites : state.clips).values()], state.options);
   $('result-count').textContent = state.results.length.toLocaleString('ja-JP');
   $('results-title').textContent = saved ? '保存したクリップ' : state.options.query ? `「${state.options.query}」の検索結果` : state.hasSearched ? '公開クリップ' : 'クリップを探す';
@@ -189,8 +182,9 @@ function render() {
   $('show-more').hidden = state.results.length <= state.visible;
   $('shown-count').textContent = state.results.length ? `${Math.min(state.visible, state.results.length).toLocaleString('ja-JP')} / ${state.results.length.toLocaleString('ja-JP')} 件を表示` : '';
   const initial = !state.hasSearched && !saved;
-  $('empty-title').textContent = state.busy ? 'クリップを探しています。' : initial ? 'まだ見ぬ名場面を、見つけよう。' : saved ? 'この条件の保存クリップはありません。' : 'この言葉では、まだ見つかりませんでした。';
-  $('empty-text').textContent = state.busy ? '取得できたクリップから、順に検索結果を表示します。' : initial ? '気になる言葉で検索するか、\n人気のクリップから探してみよう。' : saved ? '検索語や期間・言語を変えるか、クリップの保存ボタンを押してください。' : 'もっと広く探すか、キーワードや期間・言語を変えてみてください。';
+  $('empty-title').textContent = state.busy ? '取得中…' : initial ? 'キーワードを入力してください。' : saved ? '保存したクリップがありません。' : '該当するクリップがありません。';
+  $('empty-text').textContent = state.busy || initial ? '' : '検索条件を変更するか、クリップを追加取得してください。';
+  $('empty-text').hidden = state.busy || initial;
   $('empty-text').style.whiteSpace = 'pre-line';
   $('browse').hidden = state.busy || !initial;
   $('web-search').hidden = saved || state.busy || !state.options.query;
@@ -222,7 +216,7 @@ async function collect(refresh = false) {
           if (Date.now() - lastRender > 600) { render(); lastRender = Date.now(); }
         },
         onProgress(progress) {
-          $('coverage-title').textContent = `公開クリップを取得中 · ${progress.completed} / ${progress.total} ページ`;
+          $('coverage-title').textContent = `取得中 ${progress.completed} / ${progress.total}`;
           $('coverage-detail').textContent = `${progress.stage}${progress.errors ? ` · ${progress.errors}件の取得エラー` : ''}`;
           $('progress-bar').style.width = `${progress.total ? progress.completed / progress.total * 100 : 0}%`;
         },
@@ -306,7 +300,6 @@ async function initialize() {
   $('collect').addEventListener('click', handle(() => collect()));
   $('stop').addEventListener('click', () => state.controller?.abort());
   $('browse').addEventListener('click', handle(async () => { $('query').value = ''; await search(); }));
-  document.querySelectorAll('[data-query]').forEach(button => button.addEventListener('click', handle(async () => { $('query').value = button.dataset.query; await search(); })));
   document.querySelectorAll('[data-period]').forEach(button => button.addEventListener('click', handle(async () => {
     if (state.busy || state.options.period === button.dataset.period) return;
     state.options.period = button.dataset.period;
@@ -319,8 +312,7 @@ async function initialize() {
   $('saved-tab').addEventListener('click', () => { state.view = 'saved'; state.visible = 60; render(); });
   $('show-more').addEventListener('click', () => { state.visible += 60; render(); });
   $('export').addEventListener('click', exportCSV);
-  $('focus-search').addEventListener('click', () => $('query').focus());
-  for (const id of ['about-open', 'about-footer']) $(id).addEventListener('click', () => $('about-dialog').showModal());
+  $('about-open').addEventListener('click', () => $('about-dialog').showModal());
   $('about-close').addEventListener('click', () => $('about-dialog').close());
   $('about-dialog').addEventListener('click', event => {
     const bounds = $('about-dialog').getBoundingClientRect();

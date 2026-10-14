@@ -27,37 +27,26 @@
     <div class="header-inner">
       <a class="brand" href="app.html" aria-label="Clip Scout ホーム">
         <span class="brand-mark"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 8h18v12H14l-6 5v-5H6Z"/><path d="m13 11 7 3-7 3Z"/></svg></span>
-        <span>Clip Scout<span class="brand-period">.</span></span>
+        <span>Clip Scout</span>
       </a>
       <nav class="main-nav" aria-label="メインメニュー">
-        <button id="explore-tab" class="nav-button active" aria-pressed="true"><svg><use href="#i-grid"/></svg>見つける</button>
-        <button id="saved-tab" class="nav-button" aria-pressed="false"><svg><use href="#i-bookmark"/></svg>保存したクリップ<span id="saved-count" class="nav-count">0</span></button>
+        <button id="explore-tab" class="nav-button active" aria-pressed="true"><svg><use href="#i-grid"/></svg>検索</button>
+        <button id="saved-tab" class="nav-button" aria-pressed="false"><svg><use href="#i-bookmark"/></svg>保存<span id="saved-count" class="nav-count">0</span></button>
       </nav>
       <div class="header-actions">
-        <span class="library-stat"><span class="status-dot"></span><strong id="cache-total">0</strong><span>件を取得済み</span></span>
-        <button id="about-open" class="help-button"><svg><use href="#i-info"/></svg><span>使い方</span></button>
+        <button id="about-open" class="help-button" aria-label="使い方"><svg><use href="#i-info"/></svg><span>使い方</span></button>
       </div>
     </div>
   </header>
 
   <main class="workspace">
     <section class="search-section">
-      <div class="hero-heading">
-        <div class="hero-copy">
-          <div class="eyebrow"><span></span>THE MOMENTS WORTH FINDING</div>
-          <h1>あの瞬間を、<span>もう一度。</span></h1>
-          <p class="intro">配信者を指定せず、クリップのタイトルから見つけよう。</p>
-        </div>
-        <span class="hero-caption"><svg><use href="#i-play"/></svg>Twitchクリップを横断検索</span>
-      </div>
       <form id="search-form" class="search-box" role="search">
         <svg class="search-icon"><use href="#i-search"/></svg>
         <label class="sr-only" for="query">クリップタイトルのキーワード</label>
-        <input id="query" type="search" placeholder="どんなクリップを探してる？" autocomplete="off" maxlength="300" autofocus>
-        <button id="focus-search" class="shortcut" type="button" aria-label="検索欄に移動"><kbd>/</kbd></button>
-        <button type="submit" class="primary-button">検索する<svg><use href="#i-arrow"/></svg></button>
+        <input id="query" type="search" placeholder="タイトルで検索" autocomplete="off" maxlength="300" autofocus>
+        <button type="submit" class="primary-button">検索</button>
       </form>
-      <div class="search-hints"><span>気になる言葉から</span><button data-query="爆笑">爆笑</button><button data-query="神プレイ">神プレイ</button><button data-query="ストグラ">ストグラ</button><button data-query="初見">初見</button><span class="hint-syntax">空白でAND検索 <span>·</span> -単語で除外</span></div>
     </section>
 
     <section class="filters" aria-label="検索フィルター">
@@ -66,46 +55,44 @@
         <div id="periods" class="period-buttons">
           <button data-period="LAST_DAY" aria-pressed="false">24時間</button>
           <button data-period="LAST_WEEK" aria-pressed="false">7日間</button>
-          <button data-period="LAST_MONTH" class="selected" aria-pressed="true">30日間<span class="radio-dot"></span></button>
+          <button data-period="LAST_MONTH" class="selected" aria-pressed="true">30日間</button>
           <button data-period="ALL_TIME" aria-pressed="false">全期間</button>
         </div>
       </fieldset>
-      <div class="select-field language-field"><span class="select-icon" aria-hidden="true">あ</span><label class="sr-only" for="language">クリップの言語</label><select id="language"><option value="JA">日本語</option><option value="ALL">すべての言語</option><option value="EN">英語</option><option value="KO">韓国語</option></select></div>
-      <div class="select-field category-field"><svg><use href="#i-grid"/></svg><label class="sr-only" for="category">カテゴリで絞り込み</label><select id="category"><option value="">すべてのカテゴリ</option></select></div>
+      <div class="select-field language-field"><label class="sr-only" for="language">クリップの言語</label><select id="language"><option value="JA">日本語</option><option value="ALL">すべての言語</option><option value="EN">英語</option><option value="KO">韓国語</option></select></div>
+      <div class="select-field category-field"><label class="sr-only" for="category">カテゴリで絞り込み</label><select id="category"><option value="">すべてのカテゴリ</option></select></div>
     </section>
 
-    <section class="coverage-panel" aria-label="検索範囲">
+    <section class="coverage-panel" aria-label="取得状況">
       <div class="coverage-heading">
-        <div class="coverage-icon"><svg><use href="#i-check"/></svg></div>
-        <div class="coverage-copy"><div id="coverage-title" class="coverage-title">配信者横断のタイトル検索</div><div id="coverage-detail" class="coverage-detail">検索すると公開カテゴリのクリップを取得します。</div></div>
-        <button id="collect" class="secondary-button"><svg><use href="#i-refresh"/></svg><span>もっと広く探す</span></button>
-        <button id="stop" class="secondary-button" hidden>取得を停止</button>
+        <span id="cache-summary">取得済み <strong id="cache-total">0</strong> 件から検索</span>
+        <span id="coverage-title" hidden></span>
+        <span id="coverage-detail" hidden></span>
+        <button id="collect" class="secondary-button"><svg><use href="#i-refresh"/></svg>追加取得</button>
+        <button id="stop" class="secondary-button" hidden>停止</button>
       </div>
       <div id="progress-track" class="progress-track" hidden><div id="progress-bar"></div></div>
-      <div class="coverage-footnote"><span id="scope-label">日本語 · 過去30日</span><span>取得済みクリップが検索対象です。全件を網羅する検索ではありません。</span></div>
     </section>
 
     <div id="notice" class="notice" role="status" hidden></div>
     <section class="results-section" aria-label="クリップ一覧">
       <div class="results-toolbar">
-        <div class="results-title"><span id="view-label" class="sr-only">クリップを探す</span><h2 id="results-title">クリップを探す</h2><span id="result-count" class="count-badge">0</span></div>
-        <div class="results-actions"><button id="export" class="quiet-button" disabled><svg><use href="#i-download"/></svg><span>CSVで保存</span></button><span class="toolbar-divider"></span><label class="sr-only" for="sort">並べ替え</label><select id="sort"><option value="views">視聴回数が多い順</option><option value="newest">新しい順</option><option value="oldest">古い順</option></select></div>
+        <div class="results-title"><h2 id="results-title">クリップを探す</h2><span id="result-count" class="count-badge">0</span></div>
+        <div class="results-actions"><button id="export" class="quiet-button" disabled><svg><use href="#i-download"/></svg><span>CSV</span></button><span class="toolbar-divider"></span><label class="sr-only" for="sort">並べ替え</label><select id="sort"><option value="views">視聴回数が多い順</option><option value="newest">新しい順</option><option value="oldest">古い順</option></select></div>
       </div>
       <div id="empty-state" class="empty-state">
-        <div class="empty-graphic"><span class="empty-frame frame-back"></span><span class="empty-frame frame-front"><svg><use href="#i-play"/></svg></span><span class="empty-search"><svg><use href="#i-search"/></svg></span></div>
-        <h3 id="empty-title">まだ見ぬ名場面を、見つけよう。</h3>
-        <p id="empty-text">気になる言葉で検索するか、<br>人気のクリップから探してみよう。</p>
-        <button id="browse" class="secondary-button">人気のクリップを見る<svg><use href="#i-arrow"/></svg></button>
+        <h3 id="empty-title">キーワードを入力してください。</h3>
+        <p id="empty-text"></p>
+        <button id="browse" class="secondary-button">クリップを取得</button>
         <a id="web-search" class="text-link" target="_blank" rel="noopener noreferrer" hidden>Googleでもタイトルを探す <span>↗</span></a>
       </div>
       <div id="results" class="clip-grid"></div>
       <div class="load-actions"><button id="show-more" class="secondary-button" hidden>次の60件を表示<svg><use href="#i-arrow"/></svg></button><span id="shown-count"></span></div>
     </section>
-    <footer class="main-footer"><span class="footer-brand">Clip Scout<span>自分だけの、クリップ探し。</span></span><div class="footer-links"><span class="private-label"><svg><use href="#i-check"/></svg>ログイン不要・端末内に保存</span><button id="about-footer" class="text-link">検索範囲について<svg><use href="#i-expand"/></svg></button><span class="version">v1.1.0</span></div></footer>
   </main>
 
   <dialog id="about-dialog">
-    <div class="dialog-heading"><div><div class="section-label">HOW IT WORKS</div><h2>検索のしくみ</h2></div><button id="about-close" class="close-button" aria-label="閉じる">×</button></div>
+    <div class="dialog-heading"><div><h2>検索のしくみ</h2></div><button id="about-close" class="close-button" aria-label="閉じる">×</button></div>
     <p>Clip Scoutは、公開カテゴリのクリップを配信者の指定なしで集め、<strong>クリップのタイトル</strong>を端末上で検索します。Twitchログイン、チャンネルID、APIキーの入力は不要です。</p>
     <div class="about-block"><h3>検索範囲を広げる</h3><p>1回の取得で最大60カテゴリを調べ、初回は各カテゴリ最大100件を取得します。追加取得では新しいカテゴリと公開一覧の続きへ進みます。一覧確認用のTwitchタブが一時的に開き、完了すると自動で閉じます。視聴回数が多いクリップから取得するため、古いもの・視聴回数が少ないもの・取得していないカテゴリのクリップは見つからないことがあります。</p></div>
     <div class="about-block"><h3>検索の書き方</h3><p><code>爆笑 初見</code> は両方を含むタイトル、<code>爆笑 -ネタバレ</code> は除外、<code>"nice shot"</code> はフレーズ検索です。全角・半角と英字の大小は区別しません。</p></div>

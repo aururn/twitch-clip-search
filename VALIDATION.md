@@ -1,5 +1,7 @@
 # Verification — 2026-10-15 JST
 
+- Version 1.2.0: removed promotional copy, decorative illustrations, suggestion chips, and the footer. The desktop result grid starts approximately 287px from the top. The real-data index still returns 10 matches for `爆笑`; layouts from 320px to 1440px remain within the viewport. Existing browser checks cover search, saved clips, CSV, incremental retrieval, persistence, and cancellation.
+
 - Version 1.1.0: light gallery redesign checked with the existing real-data index. Layouts at 320, 390, 640, 768, 1024, and 1440 pixels have no horizontal overflow. Search, bookmarking, CSV, collection, cancellation, and persistence are covered by the extension browser checks.
 
 - Unit tests: keyword AND / phrases / exclusions, Unicode normalization and highlighting, title-only matching, date / language / sorting, URL restrictions, incremental cursor checkpoints, partial failures, abort, API errors, public-page fallback, and refusing to treat interrupted public-page loading as successful exhaustion.

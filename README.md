@@ -36,7 +36,7 @@ An extension-only ZIP created with `npm run pack` can also be extracted and load
 
 ## Usage
 
-Enter a keyword and click **検索する** (Search). The first search automatically collects public clips. Defaults are Japanese clips from the past 30 days.
+Enter a keyword and click **検索** (Search). The first search automatically collects public clips. Defaults are Japanese clips from the past 30 days.
 
 | Query | Matches |
 | --- | --- |
@@ -45,7 +45,7 @@ Enter a keyword and click **検索する** (Search). The first search automatica
 | `爆笑 -ネタバレ` | Titles containing the first term but excluding the second |
 | `"nice shot"` | Titles containing the phrase |
 
-Click **もっと広く探す** (Expand search coverage) to discover more categories and continue collection. Some additional retrieval opens temporary, muted Twitch tabs; the extension closes the tabs it created when the scan finishes, fails, or is stopped. Keep the Clip Scout tab open during collection.
+Click **追加取得** (Expand search coverage) to discover more categories and continue collection. Some additional retrieval opens temporary, muted Twitch tabs; the extension closes the tabs it created when the scan finishes, fails, or is stopped. Keep the Clip Scout tab open during collection.
 
 Use the bookmark button to save a clip. Date, language, category, and keyword filters also apply to the saved-clips view. Use **CSV** to export the current search results.
 
@@ -99,11 +99,11 @@ On Windows, create an extension-only ZIP with PowerShell:
 npm run pack
 ```
 
-The package is written to `dist/clip-scout-1.1.0.zip`.
+The package is written to `dist/clip-scout-1.2.0.zip`.
 
 ## Design
 
-The interface draws on the [Figma gallery reference in Refero Styles](https://styles.refero.design/style/5fd3b3b4-02ab-456a-87aa-e4395636b671): a light canvas, spacious thumbnail galleries, and a restrained purple accent. It uses system fonts and original interface code and icons.
+The interface uses a white canvas, readable system fonts, compact controls, and a restrained purple accent. Search, filters, retrieval status, and clip results form the main screen. Usage details stay in the help dialog. There are no promotional headings, decorative illustrations, suggestion chips, or footer slogans.
 
 ## License
 

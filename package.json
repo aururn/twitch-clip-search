@@ -1,6 +1,6 @@
 {
   "name": "clip-scout",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "Search public Twitch clip titles across streamers in a local Chrome extension.",
   "license": "MIT",

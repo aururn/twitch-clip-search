@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Clip Scout — Twitchクリップ横断検索",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "配信者の指定なしで、公開Twitchクリップのタイトルをキーワード検索。検索範囲を広げながら端末に保存します。",
   "minimum_chrome_version": "116",
   "permissions": ["scripting"],
