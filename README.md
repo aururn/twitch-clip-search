@@ -1,8 +1,8 @@
-# Clip Scout
+# Twitch Clip Search
 
 Search public Twitch clip titles across streamers without entering a channel ID, signing in, or configuring an API key.
 
-Clip Scout is a local Chrome extension with a Japanese interface. It collects public clips from categories, stores them in your browser, and searches their titles on your device.
+Twitch Clip Search is a local Chrome extension with a Japanese interface. It collects public clips from categories, stores them in your browser, and searches their titles on your device.
 
 **Search covers collected clips, not every clip on Twitch.** Twitch may restrict additional retrieval. Previously collected results remain searchable when a request fails.
 
@@ -13,13 +13,13 @@ Requires Chrome 116 or later. No server or build step is required.
 1. Download this repository as a ZIP and extract it, or clone it:
 
    ```sh
-   git clone https://github.com/aururn/clip-scout.git
+   git clone https://github.com/aururn/twitch-clip-search.git
    ```
 
 2. Open `chrome://extensions` in Chrome.
 3. Enable **Developer mode**.
 4. Click **Load unpacked** and select the repository's `extension` directory, which contains `manifest.json`.
-5. Open **Clip Scout** from Chrome's extensions menu. Pin it for easier access.
+5. Open **Twitchクリップ検索** (Twitch Clip Search) from Chrome's extensions menu. Pin it for easier access.
 
 An extension-only ZIP created with `npm run pack` can also be extracted and loaded by selecting the directory containing `manifest.json`.
 
@@ -45,19 +45,19 @@ Enter a keyword and click **検索** (Search). The first search automatically co
 | `爆笑 -ネタバレ` | Titles containing the first term but excluding the second |
 | `"nice shot"` | Titles containing the phrase |
 
-Click **追加取得** (Expand search coverage) to discover more categories and continue collection. Some additional retrieval opens temporary, muted Twitch tabs; the extension closes the tabs it created when the scan finishes, fails, or is stopped. Keep the Clip Scout tab open during collection.
+Click **追加取得** (Expand search coverage) to discover more categories and continue collection. Some additional retrieval opens temporary, muted Twitch tabs; the extension closes the tabs it created when the scan finishes, fails, or is stopped. Keep the Twitch Clip Search tab open during collection.
 
 Use the bookmark button to save a clip. Date, language, category, and keyword filters also apply to the saved-clips view. Use **CSV** to export the current search results.
 
 ## Coverage and limitations
 
-Twitch's official Helix API does not provide a global clip-title search. Clip Scout uses publicly accessible Twitch website metadata and rendered directory pages to build a local, partial index. It does not require a broadcaster ID for collection or search.
+Twitch's official Helix API does not provide a global clip-title search. Twitch Clip Search uses publicly accessible Twitch website metadata and rendered directory pages to build a local, partial index. It does not require a broadcaster ID for collection or search.
 
 An initial round examines up to 60 categories and requests up to 100 clips per category. It starts with common Japanese categories and Twitch's public category directory. Additional rounds discover more categories and try to advance up to six previously visited categories, increasing each category's collection target by 100 clips.
 
 Clips are initially retrieved in descending view-count order. Finding older or less-viewed clips may require additional collection. Categories absent from the available directory, pages that have not been collected, and unavailable clips are not covered.
 
-Twitch can restrict unauthenticated pagination and stop loading additional cards on its normal website. Clip Scout reads ordinary public listing pages for continuation; it does not bypass verification screens or extract authentication or client-integrity tokens. Restrictions are reported in the interface while existing results are retained. Deeper retrieval and complete historical coverage are not guaranteed.
+Twitch can restrict unauthenticated pagination and stop loading additional cards on its normal website. Twitch Clip Search reads ordinary public listing pages for continuation; it does not bypass verification screens or extract authentication or client-integrity tokens. Restrictions are reported in the interface while existing results are retained. Deeper retrieval and complete historical coverage are not guaranteed.
 
 Collection checkpoints are separate for each date range and language. Checkpoints older than one day are restarted while cached clips are retained. Clip titles and view counts are refreshed only when their metadata is retrieved again. Use the refresh action in **検索のしくみ** (How search works) to restart the current scope.
 
@@ -99,14 +99,14 @@ On Windows, create an extension-only ZIP with PowerShell:
 npm run pack
 ```
 
-The package is written to `dist/clip-scout-1.2.0.zip`.
+The package is written to `dist/twitch-clip-search-1.2.1.zip`.
 
 ## Design
 
 The interface uses a white canvas, readable system fonts, compact controls, and a restrained purple accent. Search, filters, retrieval status, and clip results form the main screen. Usage details stay in the help dialog. There are no promotional headings, decorative illustrations, suggestion chips, or footer slogans.
 
-## License
+## Licence
 
-This project's source code is licensed under the [MIT License](LICENSE). Twitch clips, thumbnails, trademarks, and other third-party content remain the property of their respective owners and are not granted under this license.
+This project's source code is licensed under the [MIT Licence](LICENCE). Twitch clips, thumbnails, trademarks, and other third-party content remain the property of their respective owners and are not granted under this licence.
 
-Clip Scout is an independent project and is not affiliated with or endorsed by Twitch, Amazon, Google, Raycast, or Refero.
+Twitch Clip Search is an independent project and is not affiliated with or endorsed by Twitch, Amazon, Google, Raycast, or Refero.

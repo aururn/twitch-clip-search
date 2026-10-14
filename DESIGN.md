@@ -1,4 +1,4 @@
-# Clip Scout — Minimal Search
+# Twitch Clip Search — Minimal Search
 
 The user requested a modern, minimal, readable interface with no promotional copy or unnecessary decoration. The earlier preference for a light theme remains.
 

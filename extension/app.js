@@ -196,7 +196,7 @@ async function collect(refresh = false) {
   state.hasSearched = true;
   $('notice').hidden = true;
   const callback = async lock => {
-    if (!lock) { toast('別のClip Scoutタブで取得中です'); return; }
+    if (!lock) { toast('別のTwitchクリップ検索タブで取得中です'); return; }
     // Reload the cursor after obtaining the lock, to avoid duplicate scans across tabs.
     await loadScope();
     if (refresh) state.scope = freshScope(state.options.period, state.options.language);
@@ -270,7 +270,7 @@ function exportCSV() {
   const url = URL.createObjectURL(new Blob(['\uFEFF', lines.join('\r\n')], { type: 'text/csv;charset=utf-8' }));
   const link = element('a');
   link.href = url;
-  link.download = `clip-scout-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `twitch-clip-search-${new Date().toISOString().slice(0, 10)}.csv`;
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

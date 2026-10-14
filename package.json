@@ -1,13 +1,13 @@
 {
-  "name": "clip-scout",
-  "version": "1.2.0",
+  "name": "twitch-clip-search",
+  "version": "1.2.1",
   "private": true,
   "description": "Search public Twitch clip titles across streamers in a local Chrome extension.",
   "license": "MIT",
   "engines": { "node": ">=20.3.0" },
   "repository": {
     "type": "git",
-    "url": "https://github.com/aururn/clip-scout.git"
+    "url": "https://github.com/aururn/twitch-clip-search.git"
   },
   "type": "module",
   "scripts": {

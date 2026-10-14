@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Clip Scout — Twitchクリップ横断検索</title>
+  <title>Twitchクリップ検索</title>
   <link rel="icon" href="icons/32.png">
   <link rel="stylesheet" href="styles.css">
   <script type="module" src="app.js"></script>
@@ -25,9 +25,9 @@
 
   <header class="site-header">
     <div class="header-inner">
-      <a class="brand" href="app.html" aria-label="Clip Scout ホーム">
+      <a class="brand" href="app.html" aria-label="Twitchクリップ検索 ホーム">
         <span class="brand-mark"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 8h18v12H14l-6 5v-5H6Z"/><path d="m13 11 7 3-7 3Z"/></svg></span>
-        <span>Clip Scout</span>
+        <span>Twitchクリップ検索</span>
       </a>
       <nav class="main-nav" aria-label="メインメニュー">
         <button id="explore-tab" class="nav-button active" aria-pressed="true"><svg><use href="#i-grid"/></svg>検索</button>
@@ -93,7 +93,7 @@
 
   <dialog id="about-dialog">
     <div class="dialog-heading"><div><h2>検索のしくみ</h2></div><button id="about-close" class="close-button" aria-label="閉じる">×</button></div>
-    <p>Clip Scoutは、公開カテゴリのクリップを配信者の指定なしで集め、<strong>クリップのタイトル</strong>を端末上で検索します。Twitchログイン、チャンネルID、APIキーの入力は不要です。</p>
+    <p>Twitchクリップ検索は、公開カテゴリのクリップを配信者の指定なしで集め、<strong>クリップのタイトル</strong>を端末上で検索します。Twitchログイン、チャンネルID、APIキーの入力は不要です。</p>
     <div class="about-block"><h3>検索範囲を広げる</h3><p>1回の取得で最大60カテゴリを調べ、初回は各カテゴリ最大100件を取得します。追加取得では新しいカテゴリと公開一覧の続きへ進みます。一覧確認用のTwitchタブが一時的に開き、完了すると自動で閉じます。視聴回数が多いクリップから取得するため、古いもの・視聴回数が少ないもの・取得していないカテゴリのクリップは見つからないことがあります。</p></div>
     <div class="about-block"><h3>検索の書き方</h3><p><code>爆笑 初見</code> は両方を含むタイトル、<code>爆笑 -ネタバレ</code> は除外、<code>"nice shot"</code> はフレーズ検索です。全角・半角と英字の大小は区別しません。</p></div>
     <div class="about-block"><h3>データと取得方法</h3><p>保存したクリップと取得データはこのChromeプロファイル内に保存します。閲覧履歴やログイン情報は読み取りません。Twitchの公開データと通常の一覧画面を使用するため、仕様変更で取得できなくなる可能性があります。収集中はこのタブを開いておいてください。</p></div>
