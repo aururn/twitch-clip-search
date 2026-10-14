@@ -4,9 +4,11 @@ import { openStore } from './lib/store.js';
 import { collectRound } from './lib/collector.js';
 
 const $ = id => document.getElementById(id);
+const isPanel = new URLSearchParams(location.search).get('panel') === '1';
+if (isPanel) document.documentElement.dataset.panel = 'true';
 const state = {
   clips: new Map(), favorites: new Map(), view: 'explore', hasSearched: false,
-  options: { query: '', period: 'LAST_MONTH', language: 'JA', sort: 'views', category: '' },
+  options: { query: '', period: 'ALL_TIME', language: 'JA', sort: 'views', category: '' },
   scope: null, store: null, busy: false, controller: null, visible: 60, results: [],
 };
 const api = new BrowserTwitchAPI();
@@ -44,7 +46,7 @@ function showError(error) {
 function handle(task) { return (...args) => Promise.resolve().then(() => task(...args)).catch(showError); }
 
 async function savePreferences() {
-  if (state.store) await state.store.putMeta({ key: 'preferences', options: state.options });
+  if (state.store) await state.store.putMeta({ key: 'preferences', version: 2, options: state.options });
 }
 
 async function loadScope() {
@@ -102,6 +104,14 @@ function createCard(clip, tokens) {
   link.target = '_blank';
   link.rel = 'noopener noreferrer';
   link.setAttribute('aria-label', `${clip.title} — ${clip.broadcaster}のクリップをTwitchで開く`);
+  if (isPanel) link.addEventListener('click', event => {
+    if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    handle(async () => {
+      await chrome.tabs.create({ url: clip.url, active: false });
+      toast('クリップを別タブに開きました');
+    })();
+  });
   const thumbnail = element('div', 'clip-image');
   const fallback = element('div', 'thumb-fallback', 'TWITCH CLIP');
   thumbnail.append(fallback);
@@ -173,7 +183,8 @@ function render() {
   $('explore-tab').setAttribute('aria-pressed', String(!saved));
   $('saved-tab').setAttribute('aria-pressed', String(saved));
   state.results = filterClips([...(saved ? state.favorites : state.clips).values()], state.options);
-  $('result-count').textContent = state.results.length.toLocaleString('ja-JP');
+  $('result-count').textContent = `${state.results.length.toLocaleString('ja-JP')}件`;
+  $('result-count').title = '取得済みのクリップ内で一致した件数。Twitch全体の総件数ではありません。';
   $('results-title').textContent = saved ? '保存したクリップ' : state.options.query ? `「${state.options.query}」の検索結果` : state.hasSearched ? '公開クリップ' : 'クリップを探す';
   $('export').disabled = state.results.length === 0;
   const tokens = parseQuery(state.options.query);
@@ -182,7 +193,7 @@ function render() {
   $('show-more').hidden = state.results.length <= state.visible;
   $('shown-count').textContent = state.results.length ? `${Math.min(state.visible, state.results.length).toLocaleString('ja-JP')} / ${state.results.length.toLocaleString('ja-JP')} 件を表示` : '';
   const initial = !state.hasSearched && !saved;
-  $('empty-title').textContent = state.busy ? '取得中…' : initial ? 'キーワードを入力してください。' : saved ? '保存したクリップがありません。' : '該当するクリップがありません。';
+  $('empty-title').textContent = state.busy ? '取得中…' : initial ? 'キーワードを入力してください。' : saved ? '保存したクリップがありません。' : '取得済みのクリップには一致がありません。';
   $('empty-text').textContent = state.busy || initial ? '' : '検索条件を変更するか、クリップを追加取得してください。';
   $('empty-text').hidden = state.busy || initial;
   $('empty-text').style.whiteSpace = 'pre-line';
@@ -191,7 +202,7 @@ function render() {
   $('web-search').href = webSearchURL(state.options.query);
 }
 
-async function collect(refresh = false) {
+async function collect(refresh = false, rounds = 2) {
   if (state.busy || !state.store) return;
   state.hasSearched = true;
   $('notice').hidden = true;
@@ -209,24 +220,33 @@ async function collect(refresh = false) {
       $('coverage-title').textContent = '公開クリップを取得しています';
       $('coverage-detail').textContent = 'Twitchに接続しています…';
       await api.initialize(signal);
-      const result = await collectRound({
-        api, store: state.store, scope: state.scope, signal,
-        onPage(clips) {
-          clips.forEach(clip => state.clips.set(clip.slug, clip));
-          if (Date.now() - lastRender > 600) { render(); lastRender = Date.now(); }
-        },
-        onProgress(progress) {
-          $('coverage-title').textContent = `取得中 ${progress.completed} / ${progress.total}`;
-          $('coverage-detail').textContent = `${progress.stage}${progress.errors ? ` · ${progress.errors}件の取得エラー` : ''}`;
-          $('progress-bar').style.width = `${progress.total ? progress.completed / progress.total * 100 : 0}%`;
-        },
-      });
-      if (result.errors.length) {
-        const first = result.errors[0];
-        $('notice').textContent = `${result.errors.length}件のカテゴリ取得に失敗しました。取得済みの結果は検索できます。${first.category}: ${first.message}`;
+      const errors = [];
+      let remaining = true;
+      const initialCount = state.clips.size;
+      for (let round = 0; round < rounds && remaining; round++) {
+        const result = await collectRound({
+          api, store: state.store, scope: state.scope, signal,
+          knownClips: state.clips.values(), query: state.options.query,
+          onPage(clips) {
+            clips.forEach(clip => state.clips.set(clip.slug, clip));
+            if (Date.now() - lastRender > 600) { render(); lastRender = Date.now(); }
+          },
+          onProgress(progress) {
+            $('coverage-title').textContent = `取得中 · ${state.clips.size.toLocaleString('ja-JP')}件`;
+            $('coverage-detail').textContent = `${progress.stage}${progress.errors ? ` · ${progress.errors}件の取得エラー` : ''}`;
+            $('progress-bar').style.width = `${progress.total ? progress.completed / progress.total * 100 : 0}%`;
+          },
+        });
+        errors.push(...result.errors);
+        remaining = result.remaining;
+        if (result.completed === 0 || result.errors.length >= 4) break;
+      }
+      if (errors.length) {
+        const first = errors[0];
+        $('notice').textContent = `一部を取得できませんでした。取得済みの結果は検索できます。${first.source}: ${first.message}`;
         $('notice').hidden = false;
       }
-      toast(result.remaining ? '取得完了。追加取得でさらに探せます' : '現在のカテゴリ一覧から取得できる範囲を取得しました');
+      toast(`${(state.clips.size - initialCount).toLocaleString('ja-JP')}件を追加しました${remaining ? '。さらに取得できます' : ''}`);
     } catch (error) {
       if (error.name === 'AbortError' || signal.aborted) toast('取得を停止しました。取得済みの結果は残ります');
       else showError(error);
@@ -247,7 +267,7 @@ async function search() {
   state.hasSearched = true;
   await savePreferences();
   render();
-  if (!state.busy && (!state.scope?.updatedAt || Date.now() - state.scope.updatedAt > 7200000)) await collect();
+  if (!state.busy) await collect();
 }
 
 async function changeScope() {
@@ -284,7 +304,7 @@ async function initialize() {
   favorites.forEach(clip => state.favorites.set(clip.slug, clip));
   const options = preferences?.options;
   if (options) {
-    if (Object.hasOwn(PERIODS, options.period)) state.options.period = options.period;
+    if (preferences.version === 2 && Object.hasOwn(PERIODS, options.period)) state.options.period = options.period;
     if (['JA', 'ALL', 'EN', 'KO'].includes(options.language)) state.options.language = options.language;
     if (['views', 'newest', 'oldest'].includes(options.sort)) state.options.sort = options.sort;
     if (typeof options.query === 'string') state.options.query = options.query.slice(0, 300);
@@ -295,6 +315,7 @@ async function initialize() {
   updateFilters();
   updateCategoryOptions();
   render();
+  await savePreferences();
 
   $('search-form').addEventListener('submit', event => { event.preventDefault(); handle(search)(); });
   $('collect').addEventListener('click', handle(() => collect()));
@@ -335,6 +356,7 @@ async function initialize() {
     }
   });
   window.addEventListener('beforeunload', event => { if (state.busy) { event.preventDefault(); event.returnValue = ''; } });
+  window.addEventListener('pagehide', () => state.controller?.abort());
   document.documentElement.dataset.ready = 'true';
 }
 

@@ -66,7 +66,7 @@ export function highlightParts(title, tokens) {
   return parts;
 }
 
-export function filterClips(clips, { query = '', period = 'LAST_MONTH', language = 'JA', sort = 'views', category = '' } = {}, now = Date.now()) {
+export function filterClips(clips, { query = '', period = 'ALL_TIME', language = 'JA', sort = 'views', category = '' } = {}, now = Date.now()) {
   const tokens = parseQuery(query);
   const cutoff = now - (PERIODS[period]?.days ?? 30) * 86400000;
   return clips.filter(clip =>
@@ -111,7 +111,7 @@ export function freshScope(period, language) {
   return {
     key: `${period}:${language}`, period, language,
     categories: SEED_CATEGORIES.map(name => ({ name, slug: categorySlug(name), cursor: null, pages: 0, done: false, error: '' })),
-    directoryCursor: null, directoryDone: false, directoryPages: 0, updatedAt: 0,
+    broadcasters: [], directoryCursor: null, directoryDone: false, directoryPages: 0, updatedAt: 0,
   };
 }
 

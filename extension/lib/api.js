@@ -4,7 +4,7 @@ import { sanitizeClip } from './core.js';
 const WEBSITE_CLIENT_ID = 'kimne78kx3ncx6brgo4mv6wki5h1ko';
 const ENDPOINT = 'https://gql.twitch.tv/gql';
 const DIRECTORY_QUERY = `query ScoutDirectory($after: Cursor) {
-  games(first: 50, after: $after) {
+  games(first: 100, after: $after) {
     edges { cursor node { name slug } } pageInfo { hasNextPage }
   }
 }`;
@@ -12,6 +12,18 @@ const CLIPS_QUERY = `query ScoutClips($name: String!, $after: Cursor, $criteria:
   game(name: $name) {
     clips(first: 100, after: $after, criteria: $criteria) {
       edges { cursor node {
+        slug title viewCount createdAt durationSeconds language thumbnailURL
+        broadcaster { login displayName } game { name displayName }
+      } }
+      pageInfo { hasNextPage }
+    }
+  }
+}`;
+
+const BROADCASTER_CLIPS_QUERY = `query BroadcasterClips($login: String!, $criteria: UserClipsInput!) {
+  user(login: $login) {
+    clips(first: 100, criteria: $criteria) {
+      edges { node {
         slug title viewCount createdAt durationSeconds language thumbnailURL
         broadcaster { login displayName } game { name displayName }
       } }
@@ -105,6 +117,17 @@ export class TwitchAPI {
     return {
       clips: connection.edges.map(edge => sanitizeClip(edge.node, category.name)).filter(Boolean),
       cursor: connection.edges.at(-1)?.cursor ?? null,
+      hasNext: Boolean(connection.pageInfo.hasNextPage),
+    };
+  }
+
+  async broadcasterClips(login, period, signal) {
+    const data = await this.request(BROADCASTER_CLIPS_QUERY, { login, criteria: { period } }, signal);
+    if (!data.user) return { clips: [], hasNext: false };
+    const connection = data.user.clips;
+    if (!connection?.edges || !connection.pageInfo) throw new Error('配信者のクリップの取得形式が変わっています。');
+    return {
+      clips: connection.edges.map(edge => sanitizeClip(edge.node)).filter(Boolean),
       hasNext: Boolean(connection.pageInfo.hasNextPage),
     };
   }

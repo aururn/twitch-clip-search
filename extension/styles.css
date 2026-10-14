@@ -154,6 +154,45 @@ code { padding: 1px 4px; background: #f2f3f5; border-radius: 3px; color: #51555e
   .save-button { width: 32px; height: 32px; }
   dialog { padding: 20px; }
 }
+:root[data-panel] .header-inner { height: 48px; padding: 0 12px; gap: 16px; }
+:root[data-panel] .brand { font-size: 14px; letter-spacing: -.4px; }
+:root[data-panel] .brand-mark, :root[data-panel] .nav-button svg, :root[data-panel] .help-button > span { display: none; }
+:root[data-panel] .main-nav { gap: 12px; }
+:root[data-panel] .nav-button { font-size: 11px; }
+:root[data-panel] .site-header { position: sticky; top: 0; z-index: 10; background: #fff; }
+:root[data-panel] .workspace { padding: 0 12px 20px; }
+:root[data-panel] .search-section { position: sticky; top: 49px; z-index: 9; background: #fff; padding: 10px 0 6px; }
+:root[data-panel] .search-box { min-height: 42px; }
+:root[data-panel] .primary-button { min-height: 30px; padding: 5px 13px; }
+:root[data-panel] .filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 7px; margin-top: 2px; }
+:root[data-panel] .filters fieldset { grid-column: 1 / -1; width: 100%; }
+:root[data-panel] .period-buttons button { flex: 1; min-width: 0; padding: 4px 5px; font-size: 11px; }
+:root[data-panel] .select-field select { min-width: 0; max-width: none; width: 100%; font-size: 11px; }
+:root[data-panel] .coverage-heading { gap: 7px; font-size: 10px; }
+:root[data-panel] #coverage-detail { max-width: 30%; }
+:root[data-panel] .results-section { margin-top: 14px; }
+:root[data-panel] .results-toolbar { gap: 6px; margin-bottom: 12px; }
+:root[data-panel] .results-title h2 { font-size: 12px; }
+:root[data-panel] .results-actions { gap: 7px; }
+:root[data-panel] .results-actions .quiet-button > span, :root[data-panel] .toolbar-divider { display: none; }
+:root[data-panel] .results-actions select { max-width: 112px; font-size: 10px; }
+:root[data-panel] .count-badge { font-size: 10px; white-space: nowrap; }
+:root[data-panel] .clip-grid { grid-template-columns: 1fr; gap: 12px; }
+:root[data-panel] .clip-card { display: grid; grid-template-columns: 108px minmax(0, 1fr); column-gap: 10px; row-gap: 2px; padding-bottom: 12px; border-bottom: 1px solid #f0f1f3; }
+:root[data-panel] .clip-link { display: contents; }
+:root[data-panel] .clip-link:focus-visible .clip-image { outline: 2px solid var(--accent); outline-offset: 2px; }
+:root[data-panel] .clip-image { grid-column: 1; grid-row: 1 / span 3; align-self: start; border-radius: 4px; }
+:root[data-panel] .clip-duration { bottom: 3px; right: 3px; font-size: 9px; }
+:root[data-panel] .clip-content { grid-column: 2; grid-row: 1; padding: 0; }
+:root[data-panel] .clip-content h3 { min-height: 0; font-size: 12px; line-height: 1.5; }
+:root[data-panel] .clip-footer { grid-column: 2; grid-row: 2; padding: 0; gap: 4px; }
+:root[data-panel] .broadcaster { font-size: 10px; }
+:root[data-panel] .clip-category { display: none; }
+:root[data-panel] .save-button { width: 23px; height: 23px; }
+:root[data-panel] .save-button svg { width: 13px; height: 13px; }
+:root[data-panel] .clip-meta { grid-column: 2; grid-row: 3; margin: 0; font-size: 9px; }
+:root[data-panel] .empty-state { min-height: 150px; padding: 20px 8px; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }

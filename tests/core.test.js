@@ -19,7 +19,8 @@ test('配信者名を検索対象に混ぜず期間・言語を適用する', ()
     { slug: '3', title: '爆笑の瞬間', language: 'EN', createdAt: '2026-10-14T00:00:00Z', views: 10 },
     { slug: '4', title: '爆笑の瞬間', language: 'JA', createdAt: '2026-01-01T00:00:00Z', views: 50 },
   ];
-  assert.deepEqual(filterClips(clips, { query: '爆笑' }, now).map(clip => clip.slug), ['1']);
+  assert.deepEqual(filterClips(clips, { query: '爆笑' }, now).map(clip => clip.slug), ['4', '1'], '初期状態では古いクリップを除外しない');
+  assert.deepEqual(filterClips(clips, { query: '爆笑', period: 'LAST_MONTH' }, now).map(clip => clip.slug), ['1']);
   assert.deepEqual(filterClips(clips, { query: '爆笑', language: 'ALL', period: 'ALL_TIME' }, now).map(clip => clip.slug), ['4', '3', '1']);
   assert.deepEqual(filterClips(clips, { query: '爆笑', language: 'ALL', period: 'ALL_TIME', sort: 'oldest' }, now).map(clip => clip.slug), ['4', '1', '3']);
 });

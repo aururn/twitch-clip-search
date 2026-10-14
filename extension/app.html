@@ -55,8 +55,8 @@
         <div id="periods" class="period-buttons">
           <button data-period="LAST_DAY" aria-pressed="false">24時間</button>
           <button data-period="LAST_WEEK" aria-pressed="false">7日間</button>
-          <button data-period="LAST_MONTH" class="selected" aria-pressed="true">30日間</button>
-          <button data-period="ALL_TIME" aria-pressed="false">全期間</button>
+          <button data-period="LAST_MONTH" aria-pressed="false">30日間</button>
+          <button data-period="ALL_TIME" class="selected" aria-pressed="true">全期間</button>
         </div>
       </fieldset>
       <div class="select-field language-field"><label class="sr-only" for="language">クリップの言語</label><select id="language"><option value="JA">日本語</option><option value="ALL">すべての言語</option><option value="EN">英語</option><option value="KO">韓国語</option></select></div>
@@ -65,7 +65,7 @@
 
     <section class="coverage-panel" aria-label="取得状況">
       <div class="coverage-heading">
-        <span id="cache-summary">取得済み <strong id="cache-total">0</strong> 件から検索</span>
+        <span id="cache-summary" title="Twitch全体のクリップの一部を取得して検索しています">取得した一部 <strong id="cache-total">0</strong> 件から検索</span>
         <span id="coverage-title" hidden></span>
         <span id="coverage-detail" hidden></span>
         <button id="collect" class="secondary-button"><svg><use href="#i-refresh"/></svg>追加取得</button>
@@ -94,9 +94,10 @@
   <dialog id="about-dialog">
     <div class="dialog-heading"><div><h2>検索のしくみ</h2></div><button id="about-close" class="close-button" aria-label="閉じる">×</button></div>
     <p>Twitchクリップ検索は、公開カテゴリのクリップを配信者の指定なしで集め、<strong>クリップのタイトル</strong>を端末上で検索します。Twitchログイン、チャンネルID、APIキーの入力は不要です。</p>
-    <div class="about-block"><h3>検索範囲を広げる</h3><p>1回の取得で最大60カテゴリを調べ、初回は各カテゴリ最大100件を取得します。追加取得では新しいカテゴリと公開一覧の続きへ進みます。一覧確認用のTwitchタブが一時的に開き、完了すると自動で閉じます。視聴回数が多いクリップから取得するため、古いもの・視聴回数が少ないもの・取得していないカテゴリのクリップは見つからないことがあります。</p></div>
+    <div class="about-block"><h3>検索範囲を広げる</h3><p>カテゴリで見つかった配信者のクリップも自動で取得します。1ラウンドは最大60カテゴリと40配信者、検索ごとに最大2ラウンド進みます。全期間の取得後は、30日・7日・24時間のランキングも調べます。「追加取得」で未取得の配信者や期間へ進みます。通常の一覧を読むTwitchタブが一時的に開く場合があります。</p><p>表示件数は取得した一部の中での一致数です。Twitch全体の総件数ではありません。非公開・削除済みのもの、未発見の配信者、ランキング下位のクリップは見つからない場合があります。</p></div>
     <div class="about-block"><h3>検索の書き方</h3><p><code>爆笑 初見</code> は両方を含むタイトル、<code>爆笑 -ネタバレ</code> は除外、<code>"nice shot"</code> はフレーズ検索です。全角・半角と英字の大小は区別しません。</p></div>
-    <div class="about-block"><h3>データと取得方法</h3><p>保存したクリップと取得データはこのChromeプロファイル内に保存します。閲覧履歴やログイン情報は読み取りません。Twitchの公開データと通常の一覧画面を使用するため、仕様変更で取得できなくなる可能性があります。収集中はこのタブを開いておいてください。</p></div>
+    <div class="about-block"><h3>Twitchを見ながら使う</h3><p>Chromeの拡張アイコンを押すとサイドパネルが開きます。検索結果を押すとバックグラウンドの別タブに開くので、視聴中の配信はそのままです。</p></div>
+    <div class="about-block"><h3>データと取得方法</h3><p>保存したクリップと取得データはこのChromeプロファイル内に保存します。閲覧履歴やログイン情報は読み取りません。Twitchの公開データと通常の一覧画面を使用するため、仕様変更で取得できなくなる可能性があります。取得中はパネルを開いておいてください。閉じても取得済みの結果と進捗は残ります。</p></div>
     <div class="about-actions"><button id="refresh-scope" class="secondary-button">現在の範囲を最新から取り直す</button><button id="clear-cache" class="quiet-button">取得データを消去</button></div>
     <p class="dialog-note">取得データを消しても「保存したクリップ」は残ります。Twitch非公式の個人用ツールです。</p>
   </dialog>

@@ -53,3 +53,9 @@ test('停止済みの公開ページ読み取りはタブを開かない', async
   await assert.rejects(reader.scan('https://www.twitch.tv/directory', 'directory', 50, 'ALL', controller.signal), { name: 'AbortError' });
   assert.equal(created, false);
 });
+
+test('カテゴリの追加読み込み停止で検索範囲を完了扱いにしない', async () => {
+  const reader = { async scan() { return { items: [{ name: 'Minecraft', slug: 'minecraft' }], exhausted: true }; } };
+  const api = new BrowserTwitchAPI(async () => { throw new Error('must not request cursor'); }, reader);
+  await assert.rejects(api.directory('page:100', new AbortController().signal), /追加読み込みが止まりました/);
+});

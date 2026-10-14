@@ -54,9 +54,12 @@ export class PublicPageReader {
   async scan(url, mode, target, language, signal) {
     if (signal.aborted) throw abortError();
     const tab = await this.chrome.tabs.create({ url: 'about:blank', active: false });
+    const port = this.chrome.runtime?.connect({ name: 'clip-search-scans' });
+    port?.postMessage({ type: 'track', tabId: tab.id });
     const items = new Map();
     const run = async action => {
       if (signal.aborted) throw abortError();
+      port?.postMessage({ type: 'ping' });
       const result = await this.chrome.scripting.executeScript({ target: { tabId: tab.id }, func: readPublicPage, args: [mode, action, language] });
       const data = result[0]?.result;
       if (data?.blocked) throw new Error(data.message);
@@ -98,6 +101,7 @@ export class PublicPageReader {
     } finally {
       // Close only the tab created by this scan, including on cancellation.
       try { await this.chrome.tabs.remove(tab.id); } catch { /* Already closed by the user. */ }
+      try { port?.postMessage({ type: 'release', tabId: tab.id }); port?.disconnect(); } catch { /* Panel already closed. */ }
     }
   }
 }
@@ -107,10 +111,11 @@ export class BrowserTwitchAPI extends TwitchAPI {
 
   async directory(cursor, signal) {
     if (!cursor) return super.directory(cursor, signal);
-    const previous = cursor.startsWith('page:') ? Number(cursor.slice(5)) : 50;
+    const previous = cursor.startsWith('page:') ? Number(cursor.slice(5)) : 100;
     const target = previous + 50;
     const data = await this.reader.scan('https://www.twitch.tv/directory', 'directory', target, 'ALL', signal);
     if (!data.items.length) throw new Error('Twitchのカテゴリ一覧を読み込めませんでした。取得済みの結果は検索できます。');
+    if (data.items.length < target && data.exhausted) throw new Error('カテゴリ一覧の追加読み込みが止まりました。取得済みの配信者からもクリップを探します。');
     return {
       names: data.items, cursor: `page:${data.items.length}`, hasNext: !data.exhausted && data.items.length >= target,
       warning: data.items.length < previous ? 'Twitchの一覧の追加読み込みが止まりました。表示できたカテゴリを追加し、取得済みの結果は保持しています。' : '',
