@@ -1,14 +1,12 @@
-# Clip Scout
+# Clip Scout — Light Gallery
 
-Reference: [Raycast on Refero Styles](https://styles.refero.design/style/3b6a17f0-3bdf-418c-a95e-0b89e5a8b2f8), chosen from the user's Refero Styles library.
+Reference: [Figma on Refero Styles](https://styles.refero.design/style/5fd3b3b4-02ab-456a-87aa-e4395636b671). The user requested a brighter interface after reviewing the first version.
 
-Adaptation for a Japanese desktop search tool, rather than a marketing page.
-
-- Near-black canvas (#040506), slightly elevated surfaces (#07080a), inset fields (#111214).
-- Quiet gray labels and neutral white actions. Coral (#ff6363) reserved for the logo and eyebrow mark.
-- Hairline borders, subtle inset highlights, 8px controls, 12–16px cards.
-- A persistent filter rail, one prominent keyword field, and a responsive clip gallery.
-- Use system UI fonts and Japanese fallbacks; no remote fonts or runtime dependencies.
-- Images come from actual public clip metadata. No fabricated search results.
-- Always show collection coverage and distinguish retrieval errors from no matches.
-- No account IDs, developer credentials, or backend setup in the user flow.
+- A pale white canvas (#faf9fc), white controls, dark readable text, and a purple accent (#7645e8).
+- Horizontal navigation and a broad search field; filters sit directly beneath the search rather than in a separate sidebar.
+- Three spacious columns on desktop, two on tablets, and one on mobile. Real clip thumbnails carry the color and visual interest.
+- Borderless cards, rounded thumbnail corners, readable titles, category labels on images, and accessible bookmark buttons.
+- Clear focus rings, restrained hover states, and reduced-motion support. System fonts only.
+- Compact collection progress and coverage notes remain visible. Retrieval errors never look like successful empty results.
+- Empty states use original vector-style interface shapes rather than fabricated clips.
+- The extension needs no account IDs, developer credentials, remote fonts, or application backend.

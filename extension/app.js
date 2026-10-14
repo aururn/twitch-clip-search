@@ -135,7 +135,8 @@ function createCard(clip, tokens) {
   for (const part of highlightParts(clip.title, tokens)) title.append(part.hit ? element('mark', '', part.text) : document.createTextNode(part.text));
   const category = element('div', 'clip-category', clip.category);
   category.title = clip.category;
-  content.append(title, category);
+  thumbnail.append(category);
+  content.append(title);
   link.append(thumbnail, content);
   const footer = element('div', 'clip-footer');
   const name = element('span', 'broadcaster', clip.broadcaster);
@@ -188,8 +189,8 @@ function render() {
   $('show-more').hidden = state.results.length <= state.visible;
   $('shown-count').textContent = state.results.length ? `${Math.min(state.visible, state.results.length).toLocaleString('ja-JP')} / ${state.results.length.toLocaleString('ja-JP')} 件を表示` : '';
   const initial = !state.hasSearched && !saved;
-  $('empty-title').textContent = state.busy ? 'タイトルを探しています。' : initial ? '探していた瞬間、きっとある。' : saved ? 'この条件の保存クリップはありません。' : 'まだ見つからないだけ、かも。';
-  $('empty-text').textContent = state.busy ? '取得できたクリップから、順に検索結果を表示します。' : initial ? 'キーワードを入力して検索すると、\nいろいろな配信者の公開クリップを探せます。' : saved ? '検索語や期間・言語を変えるか、クリップの保存ボタンを押してください。' : '検索範囲を広げるか、キーワードや期間・言語を変えてみてください。';
+  $('empty-title').textContent = state.busy ? 'クリップを探しています。' : initial ? 'まだ見ぬ名場面を、見つけよう。' : saved ? 'この条件の保存クリップはありません。' : 'この言葉では、まだ見つかりませんでした。';
+  $('empty-text').textContent = state.busy ? '取得できたクリップから、順に検索結果を表示します。' : initial ? '気になる言葉で検索するか、\n人気のクリップから探してみよう。' : saved ? '検索語や期間・言語を変えるか、クリップの保存ボタンを押してください。' : 'もっと広く探すか、キーワードや期間・言語を変えてみてください。';
   $('empty-text').style.whiteSpace = 'pre-line';
   $('browse').hidden = state.busy || !initial;
   $('web-search').hidden = saved || state.busy || !state.options.query;

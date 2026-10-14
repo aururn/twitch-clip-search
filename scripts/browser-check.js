@@ -67,7 +67,7 @@ try {
   assert.equal(context.pages().filter(tab => tab.url() === `chrome-extension://${id}/app.html`).length, 1, 'ツールバー起動は既存の検索タブを再利用する');
   await page.screenshot({ path: join(artifacts, 'initial-desktop.png'), fullPage: true });
   await page.locator('#query').fill('爆笑');
-  await page.locator('#search-form button').click();
+  await page.locator('#search-form button[type="submit"]').click();
   await page.waitForFunction(() => !document.querySelector('#stop').hidden, null, { timeout: 30000 });
   await page.waitForFunction(() => document.querySelector('#stop').hidden, null, { timeout: 120000 });
   const notices = await page.locator('#notice').allTextContents();

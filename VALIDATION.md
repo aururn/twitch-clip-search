@@ -1,5 +1,7 @@
 # Verification — 2026-10-15 JST
 
+- Version 1.1.0: light gallery redesign checked with the existing real-data index. Layouts at 320, 390, 640, 768, 1024, and 1440 pixels have no horizontal overflow. Search, bookmarking, CSV, collection, cancellation, and persistence are covered by the extension browser checks.
+
 - Unit tests: keyword AND / phrases / exclusions, Unicode normalization and highlighting, title-only matching, date / language / sorting, URL restrictions, incremental cursor checkpoints, partial failures, abort, API errors, public-page fallback, and refusing to treat interrupted public-page loading as successful exhaustion.
 - Browser tests: actual Manifest V3 extension loaded into a separate Chromium test profile; search, bookmarks and persistence after reload, CSV download, additional retrieval, cache deletion preserving bookmarks, desktop and mobile layout.
 - Real Twitch data: approximately 3,100 Japanese clips from 52 categories in one initial scan. Query `爆笑` returned 10 matching titles across multiple broadcasters.

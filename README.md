@@ -45,7 +45,7 @@ Enter a keyword and click **検索する** (Search). The first search automatica
 | `爆笑 -ネタバレ` | Titles containing the first term but excluding the second |
 | `"nice shot"` | Titles containing the phrase |
 
-Click **検索範囲を広げる** (Expand search coverage) to discover more categories and continue collection. Some additional retrieval opens temporary, muted Twitch tabs; the extension closes the tabs it created when the scan finishes, fails, or is stopped. Keep the Clip Scout tab open during collection.
+Click **もっと広く探す** (Expand search coverage) to discover more categories and continue collection. Some additional retrieval opens temporary, muted Twitch tabs; the extension closes the tabs it created when the scan finishes, fails, or is stopped. Keep the Clip Scout tab open during collection.
 
 Use the bookmark button to save a clip. Date, language, category, and keyword filters also apply to the saved-clips view. Use **CSV** to export the current search results.
 
@@ -99,11 +99,11 @@ On Windows, create an extension-only ZIP with PowerShell:
 npm run pack
 ```
 
-The package is written to `dist/clip-scout-1.0.0.zip`.
+The package is written to `dist/clip-scout-1.1.0.zip`.
 
 ## Design
 
-The interface draws on the [Raycast reference in Refero Styles](https://styles.refero.design/style/3b6a17f0-3bdf-418c-a95e-0b89e5a8b2f8): a near-black canvas, thin borders, restrained accents, and neutral primary actions. It uses system fonts and original interface code and icons.
+The interface draws on the [Figma gallery reference in Refero Styles](https://styles.refero.design/style/5fd3b3b4-02ab-456a-87aa-e4395636b671): a light canvas, spacious thumbnail galleries, and a restrained purple accent. It uses system fonts and original interface code and icons.
 
 ## License
 
