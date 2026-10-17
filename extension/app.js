@@ -14,7 +14,8 @@ const state = {
   indexScope: null, pendingSearch: false,
 };
 const api = new BrowserTwitchAPI();
-const index = new ClipIndex();
+let index;
+const dateFormatter = new Intl.DateTimeFormat('ja-JP', { month: 'numeric', day: 'numeric', year: 'numeric' });
 let toastTimer;
 
 function icon(name) {
@@ -179,7 +180,7 @@ function createCard(clip, tokens) {
   const metadata = element('div', 'clip-meta');
   const views = element('span', 'clip-views');
   views.textContent = `${formatViews(clip.views)} 回視聴`;
-  const date = new Intl.DateTimeFormat('ja-JP', { month: 'numeric', day: 'numeric', year: 'numeric' }).format(new Date(clip.createdAt));
+  const date = dateFormatter.format(new Date(clip.createdAt));
   metadata.append(views, element('span', '', date));
   article.append(link, footer, metadata);
   return article;
@@ -335,7 +336,9 @@ async function search() {
   await savePreferences();
   render();
   if (state.busy) { state.pendingSearch = true; state.controller?.abort(); return; }
-  if (freshIndexSearch(state.options).jobs.length) await searchOnline(true);
+  await loadIndexScope();
+  if (state.indexScope.jobs.length && state.results.length && state.indexScope.updatedAt > Date.now() - 300000) return;
+  if (state.indexScope.jobs.length) await searchOnline();
   else await collect();
 }
 
@@ -370,6 +373,7 @@ function exportCSV() {
 
 async function initialize() {
   state.store = await openStore();
+  index = new ClipIndex(globalThis.fetch.bind(globalThis), state.store);
   const [clips, favorites, preferences] = await Promise.all([
     state.store.read('clips'), state.store.read('favorites'), state.store.read('meta', 'preferences'),
   ]);
@@ -392,7 +396,12 @@ async function initialize() {
   await savePreferences();
 
   $('search-form').addEventListener('submit', event => { event.preventDefault(); handle(search)(); });
-  $('collect').addEventListener('click', handle(() => freshIndexSearch(state.options).jobs.length ? searchOnline(!state.indexScope?.jobs.some(job => !job.done)) : collect()));
+  $('collect').addEventListener('click', handle(async () => {
+    if (!freshIndexSearch(state.options).jobs.length) return collect();
+    const reset = !state.indexScope?.jobs.some(job => !job.done);
+    if (reset) await index.clearCache();
+    return searchOnline(reset);
+  }));
   $('stop').addEventListener('click', () => state.controller?.abort());
   $('browse').addEventListener('click', handle(async () => { $('query').value = ''; await search(); }));
   document.querySelectorAll('[data-period]').forEach(button => button.addEventListener('click', handle(async () => {
@@ -421,8 +430,9 @@ async function initialize() {
     const bounds = $('about-dialog').getBoundingClientRect();
     if (event.target === $('about-dialog') && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) $('about-dialog').close();
   });
-  $('refresh-scope').addEventListener('click', handle(async () => { $('about-dialog').close(); if (freshIndexSearch(state.options).jobs.length) await searchOnline(true); else await collect(true); }));
+  $('refresh-scope').addEventListener('click', handle(async () => { $('about-dialog').close(); if (freshIndexSearch(state.options).jobs.length) { await index.clearCache(); await searchOnline(true); } else await collect(true); }));
   $('clear-cache').addEventListener('click', handle(async () => {
+    await index.clearCache();
     await state.store.clearCache();
     state.clips.clear();
     state.scope = freshScope(state.options.period, state.options.language);

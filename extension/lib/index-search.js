@@ -4,6 +4,9 @@ import { abortError } from './api.js';
 export const INDEX_HOME = 'https://www.twitch-clips-storage.com/app/twitch-clips-jp/';
 const ENDPOINT = 'https://www.twitch-clips-storage.com/api/twitch-clips/clips.php';
 const PAGE_SIZE = 200;
+const CACHE_KEY = 'index-page-cache:v1';
+const CACHE_TTL = 300000;
+const CACHE_LIMIT = 24;
 
 export function freshIndexSearch(options) {
   const raw = [...String(options.query ?? '').matchAll(/(-?)(?:"([^"]+)"|([^\s"]+))/g)].find(match => match[1] !== '-');
@@ -26,7 +29,16 @@ function tokyoDate(value) {
 // This is the same public, unauthenticated search endpoint used by the source's
 // own web interface. No bulk catalogue download, tracking call or login is used.
 export class ClipIndex {
-  constructor(fetchImpl = globalThis.fetch.bind(globalThis)) { this.fetch = fetchImpl; }
+  constructor(fetchImpl = globalThis.fetch.bind(globalThis), store = null) {
+    this.fetch = fetchImpl;
+    this.store = store;
+    this.pages = null;
+  }
+
+  async clearCache() {
+    this.pages = new Map();
+    await this.store?.putMeta({ key: CACHE_KEY, pages: [] });
+  }
 
   async page(job, options, signal, now = Date.now()) {
     if (signal.aborted) throw abortError();
@@ -40,6 +52,14 @@ export class ClipIndex {
       sort_order: options.sort === 'views' ? 'views' : 'date',
       sort_direction: options.sort === 'oldest' ? 'asc' : 'desc',
     });
+    if (!this.pages) this.pages = new Map((await this.store?.read('meta', CACHE_KEY))?.pages ?? []);
+    if (signal.aborted) throw abortError();
+    const cached = this.pages.get(url.href);
+    if (cached && now - cached.at < CACHE_TTL) {
+      this.pages.delete(url.href);
+      this.pages.set(url.href, cached);
+      return structuredClone(cached.page);
+    }
     const response = await this.fetch(url.href, {
       credentials: 'omit', referrerPolicy: 'no-referrer',
       signal: AbortSignal.any([signal, AbortSignal.timeout(25000)]),
@@ -56,7 +76,14 @@ export class ClipIndex {
     const total = Number(data.totalRecords);
     if (!Array.isArray(data.records) || !/^\d+$/.test(String(data.totalRecords)) || !Number.isSafeInteger(total) || total < 0 || data.error) throw new Error('検索元の応答形式が変わっています。');
     if (!data.records.length && total > (job.page - 1) * PAGE_SIZE) throw new Error('検索元の続きが読み込まれませんでした。');
-    return { records: data.records, total, hasNext: job.page * PAGE_SIZE < total };
+    const page = { records: data.records.map(record => ({ id: record.id, title: record.title })), total, hasNext: job.page * PAGE_SIZE < total };
+    if (signal.aborted) throw abortError();
+    for (const [key, value] of this.pages) if (now - value.at >= CACHE_TTL) this.pages.delete(key);
+    this.pages.delete(url.href);
+    this.pages.set(url.href, { at: now, page });
+    while (this.pages.size > CACHE_LIMIT) this.pages.delete(this.pages.keys().next().value);
+    await this.store?.putMeta({ key: CACHE_KEY, pages: [...this.pages] });
+    return page;
   }
 }
 
@@ -68,6 +95,19 @@ export async function searchIndexPages({ index, api, store, scope, signal, known
   if (!pending.length && scope.jobs.some(job => !job.done)) errors.push('検索元の再試行は少し待ってから行ってください。取得済みの結果は検索できます。');
   let completed = 0;
   let added = 0;
+  const publish = async (clips, checkpoint) => {
+    if (signal.aborted) throw abortError();
+    const matches = clips.filter(clip => matchesTitle(clip.title, tokens));
+    if (!matches.length && !checkpoint) return;
+    // Intermediate batches retain the original cursor. A cancelled or failed
+    // page can resume without losing its already verified clips.
+    await store.commitPage(matches, structuredClone(checkpoint ?? scope));
+    for (const clip of matches) {
+      if (!knownClips.has(clip.slug)) added++;
+      knownClips.set(clip.slug, clip);
+    }
+    onPage(matches);
+  };
   for (const job of pending) {
     if (signal.aborted) throw abortError();
     onProgress({ completed, total: pending.length, stage: 'タイトルを検索しています' });
@@ -87,21 +127,16 @@ export async function searchIndexPages({ index, api, store, scope, signal, known
       }
       // Verify current titles, availability, timestamps and languages on Twitch.
       // Deleted clips disappear here; stale index titles cannot create matches.
-      const hydrated = missing.length ? await api.hydrate(missing, signal) : [];
+      const hydrated = missing.length ? await api.hydrate(missing, signal, batch => publish(batch)) : [];
       if (signal.aborted) throw abortError();
       const clips = [...recent, ...hydrated].filter(clip => matchesTitle(clip.title, tokens));
       const next = { ...job, page: job.page + 1, done: !page.hasNext };
       const snapshot = structuredClone(scope);
       Object.assign(snapshot.jobs[scope.jobs.indexOf(job)], next);
       snapshot.updatedAt = Date.now();
-      await store.commitPage(clips, snapshot);
+      await publish(clips, snapshot);
       Object.assign(job, next);
       scope.updatedAt = snapshot.updatedAt;
-      for (const clip of clips) {
-        if (!knownClips.has(clip.slug)) added++;
-        knownClips.set(clip.slug, clip);
-      }
-      onPage(clips);
       completed++;
     } catch (error) {
       if (signal.aborted || error.name === 'AbortError') throw abortError();

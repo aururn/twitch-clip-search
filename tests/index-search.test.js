@@ -131,3 +131,45 @@ test('HTTP 429ではRetry-Afterを尊重し、同じ検索元へ連続で送ら�
   assert.ok(env.scope.jobs.every(job => job.retryAt > Date.now() + 110000));
   assert.ok(env.scope.jobs.every(job => job.page === 1 && !job.done));
 });
+
+test('検証済みの最初のバッチを残りの検証が終わる前に保存・表示する', async () => {
+  const env = setup();
+  const knownClips = new Map();
+  const controller = new AbortController();
+  const clip = { slug: 'first', title: 'mondo first', fetchedAt: Date.now() };
+  const index = { async page() { return { records: [{ id: 'first', title: clip.title }], total: 1, hasNext: false }; } };
+  let displayed = false;
+  const api = { async hydrate(_, __, onBatch) {
+    await onBatch([clip]);
+    assert.equal(displayed, true, '全件の検証完了まで表示を待たない');
+    controller.abort();
+    return [clip];
+  } };
+  await assert.rejects(searchIndexPages({ ...env, index, api, knownClips, signal: controller.signal, onPage() { displayed = true; } }), { name: 'AbortError' });
+  assert.equal(knownClips.has('first'), true);
+  assert.equal(env.commits[0].checkpoint.jobs[0].page, 1, '途中の停止ではページ全体を検証済みにしない');
+  assert.equal(env.scope.jobs[0].page, 1);
+});
+
+test('検索ページを5分間再利用し、再起動後も通信なしで絞り込みに使える', async () => {
+  let requests = 0;
+  const records = new Map();
+  const store = { async read(_, key) { return structuredClone(records.get(key)); }, async putMeta(record) { records.set(record.key, structuredClone(record)); } };
+  const fetcher = async () => {
+    requests++;
+    return new Response(JSON.stringify({ records: [{ id: 'first', title: 'mondo 初見', url: 'unused' }], totalRecords: 1 }));
+  };
+  const job = freshIndexSearch(options).jobs[0];
+  const now = Date.parse('2026-10-18T01:00:00Z');
+  const first = new ClipIndex(fetcher, store);
+  await first.page(job, options, signal(), now);
+  const reopened = new ClipIndex(fetcher, store);
+  const cached = await reopened.page(job, { ...options, query: 'mondo 初見' }, signal(), now + 1000);
+  assert.equal(requests, 1);
+  assert.deepEqual(cached.records, [{ id: 'first', title: 'mondo 初見' }], '候補のIDとタイトルだけを保存する');
+  await reopened.page(job, options, signal(), now + 300001);
+  assert.equal(requests, 2, '期限後は検索元を取り直す');
+  await reopened.clearCache();
+  await reopened.page(job, options, signal(), now + 300002);
+  assert.equal(requests, 3, '明示的な再取得はキャッシュを消して行う');
+});

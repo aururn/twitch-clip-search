@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';
+import { performance } from 'node:perf_hooks';
+import { ClipIndex, freshIndexSearch, searchIndexPages } from '../extension/lib/index-search.js';
+import { TwitchAPI } from '../extension/lib/api.js';
+
+const options = { query: 'mondo', period: 'ALL_TIME', language: 'ALL', sort: 'views', category: '' };
+let sourceRequests = 0;
+let twitchRequests = 0;
+const index = new ClipIndex((...args) => { sourceRequests++; return fetch(...args); });
+const api = new TwitchAPI((...args) => { twitchRequests++; return fetch(...args); });
+const store = { async commitPage() {} };
+const knownClips = new Map();
+const scope = () => { const value = freshIndexSearch(options); value.jobs = value.jobs.slice(0, 1); return value; };
+const start = performance.now();
+let firstMs;
+const result = await searchIndexPages({ index, api, store, scope: scope(), knownClips, signal: AbortSignal.timeout(30000), onPage(clips) { if (clips.length && firstMs === undefined) firstMs = performance.now() - start; } });
+assert.equal(result.errors.length, 0, result.errors.join('\n'));
+assert.ok(knownClips.size > 0);
+const cold = { firstVerifiedMs: Math.round(firstMs), completePageMs: Math.round(performance.now() - start), verifiedClips: knownClips.size, sourceRequests, twitchRequests };
+const warmStart = performance.now();
+await searchIndexPages({ index, api, store, scope: scope(), knownClips, signal: AbortSignal.timeout(30000) });
+assert.equal(sourceRequests, cold.sourceRequests);
+assert.equal(twitchRequests, cold.twitchRequests);
+console.log(JSON.stringify({ cold, warm: { completePageMs: Math.round(performance.now() - warmStart), additionalSourceRequests: 0, additionalTwitchRequests: 0 } }, null, 2));

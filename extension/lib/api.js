@@ -132,7 +132,7 @@ export class TwitchAPI {
     };
   }
 
-  async hydrate(slugs, signal) {
+  async hydrate(slugs, signal, onBatch = () => {}) {
     const result = [];
     // Twitch permits at most 15 root aliases. Keep each request below that limit.
     const batchSize = 10;
@@ -145,7 +145,9 @@ export class TwitchAPI {
         broadcaster { login displayName } game { name displayName }
       }`).join('\n');
       const data = await this.request(`query ScoutMetadata(${declaration}) { ${fields} }`, variables, signal);
-      result.push(...Object.values(data).map(node => sanitizeClip(node)).filter(Boolean));
+      const clips = Object.values(data).map(node => sanitizeClip(node)).filter(Boolean);
+      result.push(...clips);
+      await onBatch(clips);
       if (index + batchSize < slugs.length) await pause(100, signal);
     }
     return result;

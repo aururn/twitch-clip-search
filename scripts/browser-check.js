@@ -25,6 +25,12 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   const requests = [];
   const metadataRequests = [];
+  let sourceRequests = 0;
+  let twitchRequests = 0;
+  context.on('request', request => {
+    if (request.url().includes('/api/twitch-clips/clips.php')) sourceRequests++;
+    if (request.url() === 'https://gql.twitch.tv/gql') twitchRequests++;
+  });
   if (!live) {
     await context.route('https://www.twitch.tv/**', route => route.fulfill({ contentType: 'text/html', body: '<html><body>Twitch test page</body></html>' }));
     await context.route('https://clips.twitch.tv/**', route => route.fulfill({ contentType: 'text/html', body: '<html><body>Clip</body></html>' }));
@@ -62,11 +68,24 @@ try {
   assert.equal(panel.options.path, 'app.html?panel=1');
   assert.equal(panel.behavior.openPanelOnActionClick, true);
   await page.locator('#query').fill('mondo');
+  const searchStart = Date.now();
   await page.locator('#search-form button').click();
   await page.waitForFunction(() => !document.querySelector('#stop').hidden);
+  await page.locator('#results .clip-card').first().waitFor({ timeout: 45000 });
+  const firstResultsMs = Date.now() - searchStart;
   await page.waitForFunction(() => document.querySelector('#stop').hidden, null, { timeout: 65000 });
   const count = () => page.locator('#result-count').textContent().then(value => Number(value.replace(/[^0-9]/g, '')));
   const resultCount = await count();
+  const sourceBeforeRepeat = sourceRequests;
+  const twitchBeforeRepeat = twitchRequests;
+  const warmStart = Date.now();
+  await page.locator('#search-form button').click();
+  await page.waitForTimeout(100);
+  assert.equal(await page.locator('#stop').isHidden(), true, '新鮮な検索結果があれば再び長い検索を開始しない');
+  assert.equal(sourceRequests, sourceBeforeRepeat);
+  assert.equal(twitchRequests, twitchBeforeRepeat);
+  const repeatSourceRequests = sourceRequests - sourceBeforeRepeat;
+  const repeatSearchMs = Date.now() - warmStart;
   assert.equal(errors.length, 0, errors.join('\n'));
   assert.equal(await page.locator('#notice').isVisible(), false, await page.locator('#notice').textContent());
   if (live) {
@@ -129,5 +148,5 @@ try {
   await page.evaluate(() => window.scrollTo(0,0));
   await page.locator('#toast').waitFor({ state: 'hidden' });
   await page.screenshot({ path: join(artifacts, live ? 'preview-keyword-search.png' : 'fixture-keyword-search.png') });
-  console.log(JSON.stringify({ mode: live ? 'live' : 'fixture', query: 'mondo', titleMatches: resultCount, errors, profile }));
+  console.log(JSON.stringify({ mode: live ? 'live' : 'fixture', query: 'mondo', titleMatches: resultCount, firstResultsMs, repeatSearchMs, repeatSourceRequests, errors, profile }));
 } finally { await context.close(); }

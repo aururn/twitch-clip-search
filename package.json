@@ -1,6 +1,6 @@
 {
   "name": "twitch-clip-search",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "private": true,
   "description": "Search public Twitch clip titles across streamers in a local Chrome extension.",
   "license": "MIT",
@@ -15,6 +15,7 @@
     "test:live": "node scripts/live-check.js",
     "test:coverage": "node scripts/coverage-check.js",
     "test:keywords": "node scripts/keyword-check.js",
+    "test:speed": "node scripts/speed-check.js",
     "pack": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pack.ps1"
   }
 }

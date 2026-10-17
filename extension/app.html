@@ -97,7 +97,7 @@
     <div class="about-block"><h3>検索元と検索範囲</h3><p>検索元は <a href="https://www.twitch-clips-storage.com/app/twitch-clips-jp/" target="_blank" rel="noopener noreferrer">Twitchクリップ一覧 in Japan</a> です。検索語をこのサービスへ送信します。直近100日は1回以上、直近3年は100回以上、全期間は500回以上再生されたクリップのデータを併せて検索します。日本語圏を中心とする検索元に未収録のクリップもあります。</p><p>検索結果の続きも自動で調べます。長い検索は約45秒で一度止め、「さらに検索」で再開できます。表示件数は読み込んだデータ内のタイトル一致数で、Twitch全体の総件数ではありません。</p></div>
     <div class="about-block"><h3>検索の書き方</h3><p><code>爆笑 初見</code> は両方を含むタイトル、<code>爆笑 -ネタバレ</code> は除外、<code>"nice shot"</code> はフレーズ検索です。全角・半角、英字の大小、ひらがな・カタカナは区別しません。ローマ字とかなの自動翻訳はしません。</p></div>
     <div class="about-block"><h3>Twitchを見ながら使う</h3><p>Chromeの拡張アイコンを押すとサイドパネルが開きます。検索結果を押すとバックグラウンドの別タブに開くので、視聴中の配信はそのままです。</p></div>
-    <div class="about-block"><h3>データと取得方法</h3><p>保存したクリップと取得データはこのChromeプロファイル内に保存します。検索元とTwitchへのデータ取得にログイン情報は送りません。キーワードなしの場合は従来のランキング取得を使い、一時的なTwitchタブを開くことがあります。取得中はパネルを開いておいてください。閉じても取得済みの結果と進捗は残ります。</p></div>
+    <div class="about-block"><h3>データと取得方法</h3><p>確認できたバッチから順に表示します。検索元の候補ページは最大24ページを5分間、Twitchの確認済みデータは1時間再利用します。同じ条件の結果が5分以内なら再検索時の通信を省きます。保存したクリップと取得データはこのChromeプロファイル内に保存します。検索元とTwitchへのデータ取得にログイン情報は送りません。キーワードなしの場合は従来のランキング取得を使い、一時的なTwitchタブを開くことがあります。取得中はパネルを開いておいてください。閉じても取得済みの結果と進捗は残ります。</p></div>
     <div class="about-actions"><button id="refresh-scope" class="secondary-button">現在の範囲を最新から取り直す</button><button id="clear-cache" class="quiet-button">取得データを消去</button></div>
     <p class="dialog-note">取得データを消しても「保存したクリップ」は残ります。Twitch非公式の個人用ツールです。</p>
   </dialog>

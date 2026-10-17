@@ -10,6 +10,9 @@ export const SEED_CATEGORIES = [
   'Minecraft', 'League of Legends', 'Overwatch 2', 'Escape from Tarkov',
   'Street Fighter 6', 'Dead by Daylight', 'Rust', 'IRL',
 ];
+const segmenter = new Intl.Segmenter('ja', { granularity: 'grapheme' });
+const standardViews = new Intl.NumberFormat('ja-JP', { maximumFractionDigits: 1 });
+const compactViews = new Intl.NumberFormat('ja-JP', { notation: 'compact', maximumFractionDigits: 1 });
 
 function foldText(text) {
   return String(text ?? '').normalize('NFKC').toLocaleLowerCase('ja').replace(/[ァ-ヶ]/g, char => String.fromCharCode(char.charCodeAt(0) - 0x60));
@@ -35,7 +38,7 @@ export function matchesTitle(title, tokens) {
 export function highlightParts(title, tokens) {
   const map = [];
   let normalized = '';
-  for (const item of new Intl.Segmenter('ja', { granularity: 'grapheme' }).segment(title)) {
+  for (const item of segmenter.segment(title)) {
     const part = foldText(item.segment);
     for (let i = 0; i < part.length; i++) map.push({ start: item.index, end: item.index + item.segment.length });
     normalized += part;
@@ -136,7 +139,7 @@ export function categorySlug(name) {
 }
 
 export function formatViews(views) {
-  return new Intl.NumberFormat('ja-JP', { notation: views >= 10000 ? 'compact' : 'standard', maximumFractionDigits: 1 }).format(views);
+  return (views >= 10000 ? compactViews : standardViews).format(views);
 }
 
 export function webSearchURL(query) {
