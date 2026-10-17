@@ -8,6 +8,8 @@ test('タイトル検索はAND・フレーズ・除外と全半角に対応す�
   assert.equal(matchesTitle('A nice shot!', parseQuery('"nice shot"')), true);
   assert.equal(matchesTitle('nice try, good shot', parseQuery('"nice shot"')), false);
   assert.equal(matchesTitle('大爆笑', parseQuery('爆笑')), true);
+  assert.equal(matchesTitle('モンドさんが来た', parseQuery('もんど')), true);
+  assert.equal(matchesTitle('もんどのぱんち', parseQuery('モンド')), true);
   assert.equal(matchesTitle('半角ｶﾞｯﾂﾎﾟｰｽﾞ', parseQuery('ガッツポーズ')), true);
 });
 

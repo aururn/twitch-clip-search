@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Twitchクリップ検索",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "配信者の指定なしで、公開Twitchクリップのタイトルをキーワード検索。検索範囲を広げながら端末に保存します。",
   "minimum_chrome_version": "116",
   "permissions": ["scripting", "sidePanel"],
-  "host_permissions": ["https://gql.twitch.tv/*", "https://www.twitch.tv/*"],
+  "host_permissions": ["https://gql.twitch.tv/*", "https://www.twitch.tv/*", "https://www.twitch-clips-storage.com/*"],
   "background": { "service_worker": "background.js" },
   "side_panel": { "default_path": "app.html?panel=1" },
   "action": {
@@ -14,6 +14,6 @@
   },
   "icons": { "16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png" },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'; connect-src https://gql.twitch.tv https://www.twitch.tv; img-src 'self' data: https://*.jtvnw.net https://*.twitch.tv"
+    "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'; connect-src https://gql.twitch.tv https://www.twitch.tv https://www.twitch-clips-storage.com; img-src 'self' data: https://*.jtvnw.net https://*.twitch.tv"
   }
 }

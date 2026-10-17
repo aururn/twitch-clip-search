@@ -11,9 +11,11 @@ export const SEED_CATEGORIES = [
   'Street Fighter 6', 'Dead by Daylight', 'Rust', 'IRL',
 ];
 
-export function normalize(text) {
-  return String(text ?? '').normalize('NFKC').toLocaleLowerCase('ja').trim();
+function foldText(text) {
+  return String(text ?? '').normalize('NFKC').toLocaleLowerCase('ja').replace(/[ァ-ヶ]/g, char => String.fromCharCode(char.charCodeAt(0) - 0x60));
 }
+
+export function normalize(text) { return foldText(text).trim(); }
 
 export function parseQuery(query) {
   const tokens = [];
@@ -34,7 +36,7 @@ export function highlightParts(title, tokens) {
   const map = [];
   let normalized = '';
   for (const item of new Intl.Segmenter('ja', { granularity: 'grapheme' }).segment(title)) {
-    const part = item.segment.normalize('NFKC').toLocaleLowerCase('ja');
+    const part = foldText(item.segment);
     for (let i = 0; i < part.length; i++) map.push({ start: item.index, end: item.index + item.segment.length });
     normalized += part;
   }

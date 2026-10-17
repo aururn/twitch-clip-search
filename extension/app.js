@@ -2,16 +2,19 @@ import { PERIODS, filterClips, parseQuery, highlightParts, freshScope, formatVie
 import { BrowserTwitchAPI } from './lib/browser-reader.js';
 import { openStore } from './lib/store.js';
 import { collectRound } from './lib/collector.js';
+import { ClipIndex, freshIndexSearch, searchIndexPages } from './lib/index-search.js';
 
 const $ = id => document.getElementById(id);
 const isPanel = new URLSearchParams(location.search).get('panel') === '1';
 if (isPanel) document.documentElement.dataset.panel = 'true';
 const state = {
   clips: new Map(), favorites: new Map(), view: 'explore', hasSearched: false,
-  options: { query: '', period: 'ALL_TIME', language: 'JA', sort: 'views', category: '' },
+  options: { query: '', period: 'ALL_TIME', language: 'ALL', sort: 'views', category: '' },
   scope: null, store: null, busy: false, controller: null, visible: 60, results: [],
+  indexScope: null, pendingSearch: false,
 };
 const api = new BrowserTwitchAPI();
+const index = new ClipIndex();
 let toastTimer;
 
 function icon(name) {
@@ -46,7 +49,13 @@ function showError(error) {
 function handle(task) { return (...args) => Promise.resolve().then(() => task(...args)).catch(showError); }
 
 async function savePreferences() {
-  if (state.store) await state.store.putMeta({ key: 'preferences', version: 2, options: state.options });
+  if (state.store) await state.store.putMeta({ key: 'preferences', version: 3, options: state.options });
+}
+
+async function loadIndexScope(reset = false) {
+  const fresh = freshIndexSearch(state.options);
+  state.indexScope = reset ? fresh : await state.store.read('meta', fresh.key) ?? fresh;
+  if (state.indexScope.updatedAt && Date.now() - state.indexScope.updatedAt > 86400000) state.indexScope = fresh;
 }
 
 async function loadScope() {
@@ -91,6 +100,7 @@ function setBusy(busy) {
   $('progress-bar').style.width = '0%';
   $('language').disabled = busy;
   $('category').disabled = busy;
+  $('sort').disabled = busy;
   $('refresh-scope').disabled = busy;
   $('clear-cache').disabled = busy;
   document.querySelectorAll('[data-period]').forEach(button => { button.disabled = busy; });
@@ -190,7 +200,11 @@ function render() {
   const tokens = parseQuery(state.options.query);
   $('results').replaceChildren(...state.results.slice(0, state.visible).map(clip => createCard(clip, tokens)));
   $('empty-state').hidden = state.results.length > 0;
-  $('show-more').hidden = state.results.length <= state.visible;
+  const moreLocal = state.results.length > state.visible;
+  const moreOnline = !saved && !state.busy && state.indexScope?.jobs.some(job => !job.done);
+  $('show-more').hidden = !moreLocal && !moreOnline;
+  $('show-more').textContent = moreLocal ? '次の60件を表示' : 'さらに検索';
+  $('collect').textContent = state.indexScope?.jobs.length ? state.indexScope.jobs.some(job => !job.done) ? 'さらに検索' : '再検索' : '追加取得';
   $('shown-count').textContent = state.results.length ? `${Math.min(state.visible, state.results.length).toLocaleString('ja-JP')} / ${state.results.length.toLocaleString('ja-JP')} 件を表示` : '';
   const initial = !state.hasSearched && !saved;
   $('empty-title').textContent = state.busy ? '取得中…' : initial ? 'キーワードを入力してください。' : saved ? '保存したクリップがありません。' : '取得済みのクリップには一致がありません。';
@@ -258,6 +272,59 @@ async function collect(refresh = false, rounds = 2) {
     }
   };
   await navigator.locks.request('clip-scout-collection', { ifAvailable: true }, callback);
+  if (state.pendingSearch) { state.pendingSearch = false; await searchOnline(true); }
+}
+
+async function searchOnline(reset = false) {
+  if (state.busy || !state.store) return;
+  await navigator.locks.request('clip-scout-collection', { ifAvailable: true }, async lock => {
+    if (!lock) { toast('別のパネルで検索中です'); return; }
+    await loadIndexScope(reset);
+    state.controller = new AbortController();
+    const signal = state.controller.signal;
+    const controller = state.controller;
+    const budgetTimer = setTimeout(() => controller.abort('time-budget'), 45000);
+    setBusy(true);
+    $('notice').hidden = true;
+    $('coverage-title').textContent = 'タイトルを検索しています';
+    $('coverage-detail').textContent = '';
+    render();
+    const errors = [];
+    try {
+      // Continue actual keyword-result pages, instead of stopping after two
+      // unrelated ranking rounds. Completed pages survive the timed pause.
+      const deadline = Date.now() + 45000;
+      let remaining = true;
+      while (remaining) {
+        const result = await searchIndexPages({
+          index, api, store: state.store, scope: state.indexScope, signal, knownClips: state.clips,
+          onPage() { render(); },
+          onProgress(progress) {
+            $('coverage-title').textContent = `検索中 · ${state.results.length.toLocaleString('ja-JP')}件一致`;
+            $('coverage-detail').textContent = '検索元から取得しています';
+            $('progress-bar').style.width = `${progress.total ? progress.completed / progress.total * 100 : 0}%`;
+          },
+        });
+        remaining = result.remaining;
+        errors.push(...result.errors);
+        if (!result.completed || Date.now() >= deadline) break;
+      }
+      if (errors.length) throw new Error(errors[0]);
+      toast(remaining ? '続きがあります。「さらに検索」で再開できます' : '検索元の該当ページを読み込みました');
+    } catch (error) {
+      if (signal.reason === 'time-budget') toast('続きがあります。「さらに検索」で再開できます');
+      else if (signal.aborted || error.name === 'AbortError') toast('検索を停止しました。取得済みの結果は残ります');
+      else showError(error);
+    } finally {
+      clearTimeout(budgetTimer);
+      if (errors.length) { $('notice').textContent = errors[0]; $('notice').hidden = false; }
+      setBusy(false);
+      state.controller = null;
+      updateCategoryOptions();
+      render();
+    }
+  });
+  if (state.pendingSearch) { state.pendingSearch = false; await searchOnline(true); }
 }
 
 async function search() {
@@ -267,18 +334,24 @@ async function search() {
   state.hasSearched = true;
   await savePreferences();
   render();
-  if (!state.busy) await collect();
+  if (state.busy) { state.pendingSearch = true; state.controller?.abort(); return; }
+  if (freshIndexSearch(state.options).jobs.length) await searchOnline(true);
+  else await collect();
 }
 
 async function changeScope() {
   state.visible = 60;
   state.options.category = '';
   await loadScope();
+  await loadIndexScope(true);
   updateFilters();
   updateCategoryOptions();
   await savePreferences();
   render();
-  if (state.hasSearched && state.view === 'explore' && !state.scope.updatedAt) await collect();
+  if (state.hasSearched && state.view === 'explore') {
+    if (state.indexScope.jobs.length) await searchOnline();
+    else if (!state.scope.updatedAt) await collect();
+  }
 }
 
 function csvEscape(value) { return `"${String(value ?? '').replaceAll('"', '""')}"`; }
@@ -304,21 +377,22 @@ async function initialize() {
   favorites.forEach(clip => state.favorites.set(clip.slug, clip));
   const options = preferences?.options;
   if (options) {
-    if (preferences.version === 2 && Object.hasOwn(PERIODS, options.period)) state.options.period = options.period;
-    if (['JA', 'ALL', 'EN', 'KO'].includes(options.language)) state.options.language = options.language;
+    if (preferences.version >= 2 && Object.hasOwn(PERIODS, options.period)) state.options.period = options.period;
+    if (preferences.version >= 3 && ['JA', 'ALL', 'EN', 'KO'].includes(options.language)) state.options.language = options.language;
     if (['views', 'newest', 'oldest'].includes(options.sort)) state.options.sort = options.sort;
     if (typeof options.query === 'string') state.options.query = options.query.slice(0, 300);
   }
   $('query').value = state.options.query;
   state.hasSearched = clips.length > 0;
   await loadScope();
+  await loadIndexScope();
   updateFilters();
   updateCategoryOptions();
   render();
   await savePreferences();
 
   $('search-form').addEventListener('submit', event => { event.preventDefault(); handle(search)(); });
-  $('collect').addEventListener('click', handle(() => collect()));
+  $('collect').addEventListener('click', handle(() => freshIndexSearch(state.options).jobs.length ? searchOnline(!state.indexScope?.jobs.some(job => !job.done)) : collect()));
   $('stop').addEventListener('click', () => state.controller?.abort());
   $('browse').addEventListener('click', handle(async () => { $('query').value = ''; await search(); }));
   document.querySelectorAll('[data-period]').forEach(button => button.addEventListener('click', handle(async () => {
@@ -328,10 +402,18 @@ async function initialize() {
   })));
   $('language').addEventListener('change', handle(async () => { state.options.language = $('language').value; await changeScope(); }));
   $('category').addEventListener('change', () => { state.options.category = $('category').value; state.visible = 60; render(); });
-  $('sort').addEventListener('change', handle(async () => { state.options.sort = $('sort').value; render(); await savePreferences(); }));
+  $('sort').addEventListener('change', handle(async () => {
+    state.options.sort = $('sort').value;
+    await loadIndexScope(true);
+    render(); await savePreferences();
+    if (state.hasSearched && state.view === 'explore' && state.indexScope.jobs.length) await searchOnline();
+  }));
   $('explore-tab').addEventListener('click', () => { state.view = 'explore'; state.visible = 60; render(); });
   $('saved-tab').addEventListener('click', () => { state.view = 'saved'; state.visible = 60; render(); });
-  $('show-more').addEventListener('click', () => { state.visible += 60; render(); });
+  $('show-more').addEventListener('click', handle(async () => {
+    if (state.results.length > state.visible) { state.visible += 60; render(); }
+    else await searchOnline();
+  }));
   $('export').addEventListener('click', exportCSV);
   $('about-open').addEventListener('click', () => $('about-dialog').showModal());
   $('about-close').addEventListener('click', () => $('about-dialog').close());
@@ -339,11 +421,12 @@ async function initialize() {
     const bounds = $('about-dialog').getBoundingClientRect();
     if (event.target === $('about-dialog') && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) $('about-dialog').close();
   });
-  $('refresh-scope').addEventListener('click', handle(async () => { $('about-dialog').close(); await collect(true); }));
+  $('refresh-scope').addEventListener('click', handle(async () => { $('about-dialog').close(); if (freshIndexSearch(state.options).jobs.length) await searchOnline(true); else await collect(true); }));
   $('clear-cache').addEventListener('click', handle(async () => {
     await state.store.clearCache();
     state.clips.clear();
     state.scope = freshScope(state.options.period, state.options.language);
+    state.indexScope = freshIndexSearch(state.options);
     state.hasSearched = false;
     await savePreferences();
     updateCategoryOptions();

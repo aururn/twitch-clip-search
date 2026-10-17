@@ -14,9 +14,7 @@ const profile = mkdtempSync(join(tmpdir(), 'twitch-clip-search-test-'));
 const artifacts = join(root, 'artifacts');
 mkdirSync(artifacts, { recursive: true });
 const context = await chromium.launchPersistentContext(profile, {
-  channel: 'chromium',
-  headless: true,
-  viewport: { width: 1440, height: 1080 },
+  channel: 'chromium', headless: true, viewport: { width: 390, height: 844 },
   args: [`--disable-extensions-except=${resolve(root, 'extension')}`, `--load-extension=${resolve(root, 'extension')}`],
 });
 try {
@@ -26,152 +24,110 @@ try {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   const requests = [];
-  const publicPages = [];
-  let fixtureSlow = false;
+  const metadataRequests = [];
   if (!live) {
-    await context.route('https://www.twitch.tv/directory', route => route.fulfill({ body: '<html></html>' }));
-    await context.route(url => url.hostname === 'www.twitch.tv' && /^\/directory\/category\/[^/]+\/clips$/.test(url.pathname), route => {
-      const category = new URL(route.request().url()).pathname.split('/')[3];
-      publicPages.push(category);
-      const name = category.replace(/[^a-z0-9]/gi, '');
-      const links = Array.from({ length: 200 }, (_, index) => index === 0 ? 'first' : index === 1 ? 'next' : `other${index}`).map(cursor => `<a href="/tester/clip/${name}-${cursor}"><h4>Fixture clip</h4></a>`).join('');
-      route.fulfill({ contentType: 'text/html;charset=utf-8', body: `<html lang="ja"><head><meta charset="utf-8"></head><body><button>言語</button><input type="checkbox" id="ja"><label for="ja">日本語</label><div data-a-target="root-scroller">${links}</div></body></html>` });
+    await context.route('https://www.twitch.tv/**', route => route.fulfill({ contentType: 'text/html', body: '<html><body>Twitch test page</body></html>' }));
+    await context.route('https://clips.twitch.tv/**', route => route.fulfill({ contentType: 'text/html', body: '<html><body>Clip</body></html>' }));
+    await context.route('https://www.twitch-clips-storage.com/api/twitch-clips/clips.php?**', async route => {
+      const url = new URL(route.request().url());
+      requests.push(Object.fromEntries(url.searchParams));
+      if (url.searchParams.get('search') === 'slow') await new Promise(resolve => setTimeout(resolve, 1500));
+      if (url.searchParams.get('search') === 'failme') return route.fulfill({ status: 503, body: 'Unavailable' });
+      const records = url.searchParams.get('page_number') === '1' ? [
+        { id: 'FixtureMondoRanked', title: 'ファン太、mondo高速ヘリ撃破' },
+        { id: 'FixtureCasterOnly', title: '空き巣k4sen', login: 'mondo2244' },
+        { id: 'FixtureRemoved', title: 'mondo 削除済み' },
+        { id: 'FixtureRenamed', title: 'mondo 古いタイトル' },
+        ...Array.from({ length: 196 }, (_, index) => ({ id: `unrelated-${index}`, title: '無関係なタイトル' })),
+      ] : [{ id: 'FixtureMondoBeyond200', title: 'Mondoと遊ぶ' }];
+      await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ records, totalRecords: 201 }) });
     });
     await context.route('https://gql.twitch.tv/gql', async route => {
       const body = route.request().postDataJSON();
-      if (!body?.query) return route.fulfill({ contentType: 'application/json', body: '{}' });
-      requests.push(body.variables);
-      const directory = body.query.includes('ScoutDirectory');
-      const broadcaster = body.query.includes('BroadcasterClips');
-      if (fixtureSlow && !directory) await new Promise(resolve => setTimeout(resolve, 1000));
-      const name = body.variables.name ?? 'directory';
-      const cursor = body.variables.after;
-      const node = {
-        slug: `${name.replace(/[^a-z0-9]/gi, '') || 'game'}-${cursor || 'first'}`,
-        title: ['Grand Theft Auto V', 'grand-theft-auto-v'].includes(name) ? '大爆笑 ＡＰＥＸ 初見の神プレイ' : `公開クリップ ${name}`,
-        viewCount: ['Grand Theft Auto V', 'grand-theft-auto-v'].includes(name) ? 12050 : 980,
-        createdAt: new Date().toISOString(), durationSeconds: 27.8, language: 'JA',
-        thumbnailURL: '', broadcaster: { login: 'tester', displayName: '配信者テスト' },
-        game: { name, displayName: name },
-      };
-      let data = directory ? { games: { edges: [{ cursor: 'directory-next', node: { name: 'Test Category' } }], pageInfo: { hasNextPage: false } } }
-        : { game: { clips: { edges: [{ cursor: cursor ? null : 'next', node }], pageInfo: { hasNextPage: !cursor } } } };
-      if (broadcaster) data = { user: { clips: { edges: [{ node: { ...node, slug: `creator-${body.variables.criteria.period}`, title: '爆笑：カテゴリ上位にはないクリップ' } }], pageInfo: { hasNextPage: false } } } };
-      if (body.query.includes('ScoutMetadata')) {
-        data = Object.fromEntries(Object.values(body.variables).map((slug, offset) => [`c${offset}`, { ...node, slug, title: /^grandtheftautov-(first|next)$/.test(slug) ? '大爆笑 ＡＰＥＸ 初見の神プレイ' : '公開クリップ' }]));
-      }
+      if (!body?.query || !body.variables) return route.fulfill({ contentType: 'application/json', body: '{}' });
+      metadataRequests.push(...Object.values(body.variables));
+      const data = Object.fromEntries(Object.values(body.variables).map((slug, offset) => [`c${offset}`, slug === 'FixtureRemoved' ? null : {
+        slug, title: slug === 'FixtureRenamed' ? '変更後のタイトル' : slug === 'FixtureMondoRanked' ? 'ファン太、mondo高速ヘリ撃破' : 'Mondoと遊ぶ',
+        viewCount: 144409, createdAt: '2023-12-15T17:37:58Z', durationSeconds: 30,
+        language: slug === 'FixtureMondoBeyond200' ? 'KO' : 'JA', thumbnailURL: '',
+        broadcaster: { login: 'tester', displayName: '配信者テスト' }, game: { name: 'Test Game', displayName: 'Test Game' },
+      }]));
       await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ data }) });
     });
   }
   await page.goto(`chrome-extension://${id}/app.html?panel=1`);
   await page.waitForSelector('html[data-ready="true"]');
+  assert.equal(await page.locator('#language').inputValue(), 'ALL', '初期の日本語フィルターで他言語のタイトル一致を落とさない');
   const panel = await worker.evaluate(async () => ({ options: await chrome.sidePanel.getOptions({}), behavior: await chrome.sidePanel.getPanelBehavior() }));
   assert.equal(panel.options.path, 'app.html?panel=1');
-  assert.equal(panel.behavior.openPanelOnActionClick, true, '拡張アイコンは新しいページではなくサイドパネルを開く');
-  assert.equal(await page.locator('[data-period="ALL_TIME"]').getAttribute('aria-pressed'), 'true', '初期状態で古いクリップを除外しない');
-  await page.screenshot({ path: join(artifacts, 'initial-desktop.png'), fullPage: true });
-  await page.locator('#query').fill('爆笑');
-  await page.locator('#search-form button[type="submit"]').click();
-  await page.waitForFunction(() => !document.querySelector('#stop').hidden, null, { timeout: 30000 });
-  await page.waitForFunction(() => document.querySelector('#stop').hidden, null, { timeout: 120000 });
-  const notices = await page.locator('#notice').allTextContents();
-  const resultCount = Number((await page.locator('#result-count').textContent()).replace(/[^0-9]/g, ''));
-  await page.locator('#toast').waitFor({ state: 'hidden' });
-  if (live) await page.screenshot({ path: join(artifacts, 'preview.png') });
-  await page.screenshot({ path: join(artifacts, `${live ? 'live' : 'fixture'}-results-desktop.png`), fullPage: true });
-  console.log(JSON.stringify({ mode: live ? 'live' : 'fixture', resultCount, cacheTotal: await page.locator('#cache-total').textContent(), notices, errors }));
-  assert.equal(errors.length, 0);
+  assert.equal(panel.behavior.openPanelOnActionClick, true);
+  await page.locator('#query').fill('mondo');
+  await page.locator('#search-form button').click();
+  await page.waitForFunction(() => !document.querySelector('#stop').hidden);
+  await page.waitForFunction(() => document.querySelector('#stop').hidden, null, { timeout: 65000 });
+  const count = () => page.locator('#result-count').textContent().then(value => Number(value.replace(/[^0-9]/g, '')));
+  const resultCount = await count();
+  assert.equal(errors.length, 0, errors.join('\n'));
+  assert.equal(await page.locator('#notice').isVisible(), false, await page.locator('#notice').textContent());
   if (live) {
-    assert.ok(resultCount > 0, '実データでタイトル検索が成功する');
-    assert.equal(await page.locator('#notice').isVisible(), false, '実データの収集にエラーがない');
-    const nextPage = await page.evaluate(async () => {
-      const { BrowserTwitchAPI } = await import('./lib/browser-reader.js');
-      const { openStore } = await import('./lib/store.js');
-      const store = await openStore();
-      const scope = await store.read('meta', 'ALL_TIME:JA');
-      const category = scope.categories.find(item => item.name === 'Grand Theft Auto V');
-      const api = new BrowserTwitchAPI();
-      const signal = new AbortController().signal;
-      let directory;
-      try { directory = await api.directory(scope.directoryCursor, signal); }
-      catch (error) { directory = { names: [], warning: error.message }; }
-      const newCategories = directory.names.filter(item => !scope.categories.some(category => category.slug === item.slug));
-      let continuation;
-      try {
-        const response = await api.clips(category, scope, signal);
-        const cached = new Set((await store.read('clips')).map(clip => clip.slug));
-        continuation = { count: response.clips.length, newClips: response.clips.filter(clip => !cached.has(clip.slug)).length, cursor: response.cursor };
-      } catch (error) { continuation = { restriction: error.message }; }
-      return { directoryCount: directory.names.length, newCategories: newCategories.length, directoryWarning: directory.warning ?? null, continuation };
-    });
-    assert.ok(nextPage.directoryCount > 0 || nextPage.directoryWarning, 'ディレクトリが止まっても完全取得扱いしない');
-    assert.ok(nextPage.continuation.restriction || nextPage.continuation.newClips > 0, '続きが制限されても正常な空結果として扱わない');
-    console.log(JSON.stringify({ liveNextPage: nextPage }));
-  }
-  if (!live) {
-    assert.equal(resultCount, 3);
-    assert.equal(await page.locator('#results mark').count(), 3);
-    assert.ok(requests.some(item => item.login === 'tester'), '配信者入力なしでカテゴリ外のクリップも取得する');
-    const browsing = await context.newPage();
-    await browsing.goto('https://www.twitch.tv/directory');
-    const activeBefore = await worker.evaluate(async () => (await chrome.tabs.query({ active: true, currentWindow: true }))[0].id);
-    const tabsBefore = await worker.evaluate(async () => (await chrome.tabs.query({})).length);
-    await page.locator('#results .clip-link').first().click();
-    await page.waitForFunction(() => document.querySelector('#toast').textContent.includes('別タブ'));
-    const afterClick = await worker.evaluate(async () => ({ active: (await chrome.tabs.query({ active: true, currentWindow: true }))[0].id, count: (await chrome.tabs.query({})).length }));
-    assert.equal(afterClick.active, activeBefore, '視聴中のタブのフォーカスを奪わない');
-    assert.equal(afterClick.count, tabsBefore + 1, 'バックグラウンドにクリップを一度だけ開く');
-    await context.route('https://www.twitch.tv/directory?cleanup=1', route => route.fulfill({ contentType: 'text/html', body: '<html><body>Loading</body></html>' }));
-    const scanning = await context.newPage();
-    await scanning.goto(`chrome-extension://${id}/app.html?panel=1`);
-    await scanning.waitForSelector('html[data-ready="true"]');
-    await scanning.evaluate(async () => {
-      const { PublicPageReader } = await import('./lib/browser-reader.js');
-      void new PublicPageReader().scan('https://www.twitch.tv/directory?cleanup=1', 'directory', 100, 'ALL', new AbortController().signal).catch(() => {});
-    });
-    await page.waitForFunction(async () => (await chrome.tabs.query({})).some(tab => tab.url?.includes('cleanup=1')));
-    await scanning.close();
-    await page.waitForFunction(async () => !(await chrome.tabs.query({})).some(tab => tab.url?.includes('cleanup=1')));
-    assert.equal(browsing.isClosed(), false, 'パネルを閉じてもユーザーのTwitchタブは閉じない');
-    await browsing.close();
+    assert.ok(resultCount > 10, '実際のmondoタイトルを複数の配信者から取得する');
+    assert.ok(await page.locator('a[href="https://clips.twitch.tv/CharmingDarkKangarooWutFace-jXutwg_Zmf0rl3Un"]').count());
+    await page.waitForFunction(() => Array.from(document.querySelectorAll('#results img')).slice(0,4).every(img => img.naturalWidth > 0), null, { timeout: 15000 });
+    await page.evaluate(async () => Promise.all(Array.from(document.querySelectorAll('#results img')).slice(0,4).map(img => img.decode())));
+  } else {
+    assert.equal(resultCount, 2, '配信者名のみの一致・削除済み・改題済みを数えない');
+    assert.ok(requests.some(item => item.page_number === '2'), '最初の200件より先も自動で検索する');
+    assert.equal(metadataRequests.includes('FixtureCasterOnly'), false);
     await page.locator('#results .save-button').first().click();
     await page.waitForFunction(() => document.querySelector('#saved-count').textContent === '1');
     await page.reload();
     await page.waitForSelector('html[data-ready="true"]');
+    assert.equal(await count(), 2);
     assert.equal(await page.locator('#saved-count').textContent(), '1');
-    await page.locator('#collect').click();
-    await page.waitForFunction(() => !document.querySelector('#stop').hidden);
-    try { await page.waitForFunction(() => document.querySelector('#stop').hidden, null, { timeout: 90000 }); }
-    catch (error) { console.log(JSON.stringify({ debug: { detail: await page.locator('#coverage-detail').textContent(), notice: await page.locator('#notice').textContent(), publicPages, requests: requests.length } })); throw error; }
-    assert.equal(Number((await page.locator('#result-count').textContent()).replace(/[^0-9]/g, '')), 5, '別の期間も取得してタイトルの取りこぼしを減らす');
-    await page.locator('#collect').click();
-    await page.waitForFunction(() => !document.querySelector('#stop').hidden);
-    await page.waitForFunction(() => document.querySelector('#stop').hidden, null, { timeout: 90000 });
-    assert.ok(publicPages.includes('grand-theft-auto-v'), '追加取得で通常のTwitch一覧ページも読む');
-    assert.equal(await page.locator('#notice').isVisible(), false, '正常な追加取得にエラーがない');
-    assert.ok(requests.some(variables => Object.values(variables).includes('grandtheftautov-next')), '続きにあるクリップの正確な情報を取得する');
-    assert.ok(Number((await page.locator('#result-count').textContent()).replace(/[^0-9]/g, '')) > 5);
+    const browsing = await context.newPage();
+    await browsing.goto('https://www.twitch.tv/directory');
+    const before = await worker.evaluate(async () => ({ active: (await chrome.tabs.query({ active: true, currentWindow: true }))[0].id, total: (await chrome.tabs.query({})).length }));
+    await page.locator('#results .clip-link').first().click();
+    await page.waitForFunction(() => document.querySelector('#toast').textContent.includes('別タブ'));
+    const after = await worker.evaluate(async () => ({ active: (await chrome.tabs.query({ active: true, currentWindow: true }))[0].id, total: (await chrome.tabs.query({})).length }));
+    assert.equal(after.active, before.active);
+    assert.equal(after.total, before.total + 1);
+    await browsing.close();
     const download = page.waitForEvent('download');
     await page.locator('#export').click();
-    assert.ok((await download).suggestedFilename().endsWith('.csv'));
-    await page.locator('#saved-tab').click();
-    assert.equal(await page.locator('#results .clip-card').count(), 1);
+    assert.ok((await download).suggestedFilename().startsWith('twitch-clip-search-'));
+    await page.locator('#query').fill('slow');
+    await page.locator('#search-form button').click();
+    await page.waitForFunction(() => !document.querySelector('#stop').hidden);
+    await page.locator('#stop').click();
+    await page.waitForFunction(() => document.querySelector('#stop').hidden);
+    assert.equal(await page.locator('#saved-count').textContent(), '1');
+    await page.locator('#query').fill('failme');
+    await page.locator('#search-form button').click();
+    await page.waitForFunction(() => !document.querySelector('#notice').hidden);
+    assert.match(await page.locator('#notice').textContent(), /503/);
+    await page.waitForFunction(() => document.querySelector('#stop').hidden);
+    await page.locator('#query').fill('slow');
+    await page.locator('#search-form button').click();
+    await page.waitForFunction(() => !document.querySelector('#stop').hidden);
+    await page.locator('#query').fill('mondo');
+    await page.locator('#search-form button').click();
+    await page.waitForFunction(() => document.querySelector('#stop').hidden && document.querySelector('#result-count').textContent === '2件');
     await page.locator('#about-open').click();
     await page.locator('#clear-cache').click();
     await page.waitForFunction(() => document.querySelector('#cache-total').textContent === '0');
     assert.equal(await page.locator('#saved-count').textContent(), '1');
     await page.locator('#about-close').click();
-    await page.locator('#explore-tab').click();
-    fixtureSlow = true;
-    await page.locator('#collect').click();
-    await page.waitForFunction(() => Number(document.querySelector('#cache-total').textContent.replaceAll(',', '')) >= 2);
-    await page.locator('#stop').click();
-    await page.waitForFunction(() => document.querySelector('#stop').hidden);
-    assert.ok(Number(await page.locator('#cache-total').textContent()) < 13, '停止で取得を中断する');
-    assert.equal(await page.locator('#saved-count').textContent(), '1', '停止で保存クリップを消さない');
+    await page.locator('#saved-tab').click();
+    assert.equal(await page.locator('#results .clip-card').count(), 1);
+  }
+  for (const width of [320,360,390,480,640]) {
+    await page.setViewportSize({ width, height: 844 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `Overflow at ${width}`);
   }
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: join(artifacts, `${live ? 'live' : 'fixture'}-mobile.png`), fullPage: true });
-  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, 'モバイルで横にはみ出さない');
-  console.log('Browser checks passed. Temporary test profile: ' + profile);
+  await page.evaluate(() => window.scrollTo(0,0));
+  await page.locator('#toast').waitFor({ state: 'hidden' });
+  await page.screenshot({ path: join(artifacts, live ? 'preview-keyword-search.png' : 'fixture-keyword-search.png') });
+  console.log(JSON.stringify({ mode: live ? 'live' : 'fixture', query: 'mondo', titleMatches: resultCount, errors, profile }));
 } finally { await context.close(); }
